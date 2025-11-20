@@ -1,0 +1,27 @@
+{
+  "name": "placedai",
+  "version": "1.0.0",
+  "description": "AI-Powered Recruitment Platform - Full Stack Application",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "cd backend && npm run dev",
+    "dev:client": "cd frontend && npm run dev",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "build": "cd frontend && npm run build",
+    "seed": "cd backend && npm run seed",
+    "verify-all": "cd tests && npm install && npm test"
+  },
+  "keywords": [
+    "recruitment",
+    "ai",
+    "interview",
+    "fullstack"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
+
