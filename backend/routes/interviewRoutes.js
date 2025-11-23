@@ -94,7 +94,9 @@ router.post('/start',
         interview 
       });
     } catch (error) {
-      console.error('Error starting interview:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error starting interview:', error);
+      }
       res.status(500).json({ message: 'Failed to start interview' });
     }
   }

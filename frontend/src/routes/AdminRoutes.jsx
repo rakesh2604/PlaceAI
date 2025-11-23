@@ -14,6 +14,8 @@ import AdminUsage from '../pages/admin/Usage';
 import AdminSupport from '../pages/admin/Support';
 import AdminSettings from '../pages/admin/Settings';
 import AdminJobs from '../pages/admin/Jobs';
+import AddAdmin from '../pages/admin/AddAdmin';
+import AdminResetPassword from '../pages/admin/AdminResetPassword';
 
 function AdminRoutes() {
   const { user, token } = useAuthStore();
@@ -105,6 +107,22 @@ function AdminRoutes() {
               element={
                 <PageTransition>
                   <AdminSettings />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="add-admin"
+              element={
+                <PageTransition>
+                  <AddAdmin />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="reset-password"
+              element={
+                <PageTransition>
+                  <AdminResetPassword />
                 </PageTransition>
               }
             />

@@ -1,5 +1,6 @@
 import express from 'express';
 import { body, validationResult } from 'express-validator';
+import bcrypt from 'bcryptjs';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import User from '../models/User.js';
 import Recruiter from '../models/Recruiter.js';
@@ -31,7 +32,9 @@ router.get('/users', async (req, res) => {
 
     res.json({ users, total, page: parseInt(page), limit: parseInt(limit) });
   } catch (error) {
-    console.error('Error fetching users:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error fetching users:', error);
+    }
     res.status(500).json({ message: 'Failed to fetch users' });
   }
 });
@@ -45,7 +48,9 @@ router.get('/recruiters', async (req, res) => {
 
     res.json({ recruiters });
   } catch (error) {
-    console.error('Error fetching recruiters:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error fetching recruiters:', error);
+    }
     res.status(500).json({ message: 'Failed to fetch recruiters' });
   }
 });
@@ -75,7 +80,9 @@ router.patch('/recruiters/:id/status',
 
       res.json({ recruiter });
     } catch (error) {
-      console.error('Error updating recruiter status:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error updating recruiter status:', error);
+      }
       res.status(500).json({ message: 'Failed to update recruiter' });
     }
   }
@@ -101,7 +108,9 @@ router.get('/interviews', async (req, res) => {
 
     res.json({ interviews, total, page: parseInt(page), limit: parseInt(limit) });
   } catch (error) {
-    console.error('Error fetching interviews:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error fetching interviews:', error);
+    }
     res.status(500).json({ message: 'Failed to fetch interviews' });
   }
 });
@@ -115,7 +124,9 @@ router.get('/payments', async (req, res) => {
 
     res.json({ payments });
   } catch (error) {
-    console.error('Error fetching payments:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error fetching payments:', error);
+    }
     res.status(500).json({ message: 'Failed to fetch payments' });
   }
 });
@@ -146,7 +157,9 @@ router.post('/jobs',
       await job.save();
       res.status(201).json({ job });
     } catch (error) {
-      console.error('Error creating job:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error creating job:', error);
+      }
       res.status(500).json({ message: 'Failed to create job' });
     }
   }
@@ -181,7 +194,9 @@ router.patch('/users/:id/block',
 
       res.json({ user, message: isBlocked ? 'User blocked' : 'User unblocked' });
     } catch (error) {
-      console.error('Error updating user block status:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error updating user block status:', error);
+      }
       res.status(500).json({ message: 'Failed to update user' });
     }
   }
@@ -212,7 +227,9 @@ router.get('/ats-scores', async (req, res) => {
 
     res.json({ atsScores, total: atsScores.length });
   } catch (error) {
-    console.error('Error fetching ATS scores:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error fetching ATS scores:', error);
+    }
     res.status(500).json({ message: 'Failed to fetch ATS scores' });
   }
 });
@@ -245,7 +262,9 @@ router.patch('/users/:id/premium',
 
       res.json({ user, message: isPremium ? 'Premium approved' : 'Premium removed' });
     } catch (error) {
-      console.error('Error updating premium status:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error updating premium status:', error);
+      }
       res.status(500).json({ message: 'Failed to update premium status' });
     }
   }
@@ -295,7 +314,9 @@ router.get('/stats', async (req, res) => {
       usage: usageStats[0] || { totalAIInterviews: 0, totalATSChecks: 0, totalResumeGenerations: 0 }
     });
   } catch (error) {
-    console.error('Error fetching stats:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error fetching stats:', error);
+    }
     res.status(500).json({ message: 'Failed to fetch stats' });
   }
 });
@@ -316,7 +337,9 @@ router.get('/support-tickets', async (req, res) => {
     
     res.json({ tickets, total, page: parseInt(page), limit: parseInt(limit) });
   } catch (error) {
-    console.error('Error fetching support tickets:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error fetching support tickets:', error);
+    }
     res.status(500).json({ message: 'Failed to fetch support tickets' });
   }
 });
@@ -355,7 +378,9 @@ router.patch('/support-tickets/:id/status',
 
       res.json({ ticket, message: 'Ticket updated' });
     } catch (error) {
-      console.error('Error updating ticket:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error updating ticket:', error);
+      }
       res.status(500).json({ message: 'Failed to update ticket' });
     }
   }
@@ -384,7 +409,9 @@ router.get('/usage', async (req, res) => {
       totalUsers: users.length
     });
   } catch (error) {
-    console.error('Error fetching usage:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error fetching usage:', error);
+    }
     res.status(500).json({ message: 'Failed to fetch usage data' });
   }
 });
@@ -418,8 +445,117 @@ router.patch('/users/:id/plan',
 
       res.json({ user, message: 'Plan updated' });
     } catch (error) {
-      console.error('Error updating plan:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error updating plan:', error);
+      }
       res.status(500).json({ message: 'Failed to update plan' });
+    }
+  }
+);
+
+// Create new admin
+router.post('/create',
+  body('name').trim().notEmpty().withMessage('Name is required'),
+  body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+  body('password')
+    .isLength({ min: 8 })
+    .withMessage('Password must be at least 8 characters'),
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ 
+          message: 'Validation failed',
+          errors: errors.array() 
+        });
+      }
+
+      const { name, email, password } = req.body;
+
+      // Check if admin already exists
+      const existingAdmin = await User.findOne({ email: email.toLowerCase() });
+      if (existingAdmin) {
+        return res.status(400).json({ message: 'Admin with this email already exists' });
+      }
+
+      // Hash password
+      const passwordHash = await bcrypt.hash(password, 10);
+
+      // Create new admin user
+      const admin = new User({
+        name: name.trim(),
+        email: email.toLowerCase(),
+        passwordHash,
+        role: 'admin',
+        updatedAt: new Date()
+      });
+
+      await admin.save();
+
+      // Return admin without sensitive data
+      const adminResponse = admin.toObject();
+      delete adminResponse.passwordHash;
+      delete adminResponse.otpHash;
+
+      res.status(201).json({ 
+        message: 'Admin created successfully',
+        admin: adminResponse 
+      });
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error creating admin:', error);
+      }
+      if (error.code === 11000) {
+        return res.status(400).json({ message: 'Admin with this email already exists' });
+      }
+      res.status(500).json({ message: 'Failed to create admin' });
+    }
+  }
+);
+
+// Reset admin password
+router.post('/reset-password',
+  body('oldPassword').notEmpty().withMessage('Old password is required'),
+  body('newPassword')
+    .isLength({ min: 8 })
+    .withMessage('New password must be at least 8 characters'),
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ 
+          message: 'Validation failed',
+          errors: errors.array() 
+        });
+      }
+
+      const { oldPassword, newPassword } = req.body;
+      const admin = req.user;
+
+      // Verify old password
+      if (!admin.passwordHash) {
+        return res.status(400).json({ message: 'No password set for this account' });
+      }
+
+      const isValidPassword = await bcrypt.compare(oldPassword, admin.passwordHash);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: 'Invalid old password' });
+      }
+
+      // Hash new password
+      const newPasswordHash = await bcrypt.hash(newPassword, 10);
+
+      // Update password
+      admin.passwordHash = newPasswordHash;
+      admin.updatedAt = new Date();
+      await admin.save();
+
+      res.json({ message: 'Password reset successfully' });
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error resetting password:', error);
+      }
+      res.status(500).json({ message: 'Failed to reset password' });
     }
   }
 );

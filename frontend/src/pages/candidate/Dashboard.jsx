@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   Briefcase, 
   FileText, 
@@ -110,6 +110,7 @@ const StatCard = ({ icon: Icon, label, value, trend, color }) => (
 
 export default function Dashboard() {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     totalInterviews: 0,
     lastScore: 0,
@@ -117,6 +118,9 @@ export default function Dashboard() {
     pendingRequests: 0,
   });
   const [loading, setLoading] = useState(true);
+
+  // Note: Profile completion redirects are handled at route level, not here
+  // Dashboard should always be accessible - specific features will check profile completion
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -133,7 +137,7 @@ export default function Dashboard() {
           pendingRequests: optInsResponse.data?.filter(opt => !opt.accepted)?.length || 0,
         });
       } catch (error) {
-        console.error('Error fetching stats:', error);
+        // Silently handle error - stats will show defaults
       } finally {
         setLoading(false);
       }
@@ -355,7 +359,7 @@ export default function Dashboard() {
                   Select a job role to start interviewing and unlock your career potential. 
                   Get personalized interview questions and job recommendations.
                 </p>
-                <Link to="/jobs">
+                <Link to="/dashboard/jobs">
                   <Button size="sm" className="group">
                     Browse Jobs & Select Role
                     <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />

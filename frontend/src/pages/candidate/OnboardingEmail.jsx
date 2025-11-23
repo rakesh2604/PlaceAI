@@ -37,12 +37,10 @@ export default function OnboardingEmail() {
       try {
         const result = await testConnection();
         if (result.connected) {
-          console.log('✓ Backend connection successful');
           setError(''); // Clear any previous errors
         } else {
           // Only show "backend not reachable" if health check actually failed (network/server error)
           if (result.isNetworkError) {
-            console.error('✗ Backend connection failed:', result.error);
             setError('Backend server is not reachable. Please ensure it is running.');
           } else {
             // Health check passed but something else happened - don't show backend error
@@ -50,7 +48,6 @@ export default function OnboardingEmail() {
           }
         }
       } catch (err) {
-        console.error('✗ Connection test error:', err);
         // Only show backend error if it's a network/server error
         const isNetworkError = !err.response || 
                               err.code === 'ECONNREFUSED' || 
@@ -78,8 +75,7 @@ export default function OnboardingEmail() {
       const response = await authApi.sendOTP(email);
       
       // If in development mode and OTP is returned (mock mode), show it
-      if (response.data?.otp) {
-        console.log('🔑 Development OTP:', response.data.otp);
+      if (response.data?.otp && import.meta.env.DEV) {
         alert(`Development Mode: Your OTP is ${response.data.otp}\n\n${response.data.note || ''}`);
       }
       
@@ -106,13 +102,7 @@ export default function OnboardingEmail() {
         setError(errorMessage);
       }
       
-      // Log detailed error for debugging
-      console.error('OTP Send Error:', {
-        message: err.message,
-        response: err.response?.data,
-        code: err.code,
-        config: err.config
-      });
+      // Error handled via UI message above
     } finally {
       setLoading(false);
     }

@@ -9,8 +9,7 @@
     "dev:client": "cd frontend && npm run dev",
     "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
     "build": "cd frontend && npm run build",
-    "seed": "cd backend && npm run seed",
-    "verify-all": "cd tests && npm install && npm test"
+    "seed": "cd backend && npm run seed"
   },
   "keywords": [
     "recruitment",
@@ -24,9 +23,6 @@
     "concurrently": "^8.2.2"
   },
   "main": "index.js",
-  "directories": {
-    "test": "tests"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/rakesh2604/PlaceAI.git"

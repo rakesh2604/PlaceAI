@@ -147,7 +147,9 @@ router.post('/analyze',
         report: atsReport
       });
     } catch (error) {
-      console.error('Error analyzing resume:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error analyzing resume:', error);
+      }
       res.status(500).json({ 
         success: false,
         message: 'Failed to analyze resume' 
@@ -165,7 +167,9 @@ router.get('/reports', authenticate, async (req, res) => {
     
     res.json({ reports });
   } catch (error) {
-    console.error('Error fetching ATS reports:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error fetching ATS reports:', error);
+    }
     res.status(500).json({ message: 'Failed to fetch reports' });
   }
 });
@@ -184,7 +188,9 @@ router.get('/reports/:id', authenticate, async (req, res) => {
     
     res.json({ report });
   } catch (error) {
-    console.error('Error fetching ATS report:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error fetching ATS report:', error);
+    }
     res.status(500).json({ message: 'Failed to fetch report' });
   }
 });
@@ -231,7 +237,9 @@ router.post('/analyze-resume/:resumeId',
         report: atsReport
       });
     } catch (error) {
-      console.error('Error analyzing resume:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error analyzing resume:', error);
+      }
       res.status(500).json({ 
         success: false,
         message: 'Failed to analyze resume' 

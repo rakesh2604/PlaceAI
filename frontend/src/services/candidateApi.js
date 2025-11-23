@@ -1,18 +1,27 @@
 import api from './api';
 
 export const authApi = {
-  sendOTP: (email) => api.post('/auth/send-otp', { email }),
-  verifyOTP: (email, otp, { name, phone, password, isSignup, isAdminLogin } = {}) => 
-    api.post('/auth/verify-otp', { 
-      email, 
-      otp, 
-      ...(isSignup && { name, phone, password, isSignup: true }),
-      ...(isAdminLogin && { isAdminLogin: true })
-    })
+  register: (name, email, password) => 
+    api.post('/auth/register', { name, email, password }),
+  login: (email, password) => 
+    api.post('/auth/login', { email, password }),
+  googleAuth: (credential) => 
+    api.post('/auth/google', { credential }),
+  adminLogin: (email, password) =>
+    api.post('/auth/admin/login', { email, password })
 };
 
 export const userApi = {
   getMe: () => api.get('/user/me'),
+  getProfile: () => api.get('/user/profile'),
+  updateProfile: (data) => api.patch('/user/profile', data),
+  uploadResume: (file) => {
+    const formData = new FormData();
+    formData.append('resume', file);
+    return api.post('/user/resume', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
   updateBasic: (data) => {
     const formData = new FormData();
     if (data.phone) formData.append('phone', data.phone);
@@ -28,7 +37,9 @@ export const userApi = {
 
 export const jobApi = {
   getRecommendations: () => api.get('/jobs/recommend'),
-  getJob: (id) => api.get(`/jobs/${id}`)
+  getJob: (id) => api.get(`/jobs/${id}`),
+  apply: (jobId) => api.post('/jobs/apply', { jobId }),
+  getApplications: () => api.get('/jobs/applications')
 };
 
 export const interviewApi = {

@@ -8,6 +8,8 @@ import User from '../models/User.js';
 import { parseResume } from '../utils/resumeParser.js';
 import fs from 'fs/promises';
 import aiBrain from '../src/ai/aiBrain.js';
+import { validateProfileUpdate, validatePhone } from '../middleware/validateProfile.js';
+import { isValidPhoneNumber, parsePhoneNumber } from 'libphonenumber-js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -44,30 +46,267 @@ const upload = multer({
   }
 });
 
+// Error handler for multer - must be defined before routes use it
+const handleMulterError = (err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ 
+        success: false,
+        error: 'File too large. Maximum size is 5MB.' 
+      });
+    }
+    return res.status(400).json({ 
+      success: false,
+      error: err.message || 'File upload error' 
+    });
+  }
+  if (err) {
+    return res.status(400).json({ 
+      success: false,
+      error: err.message || 'Upload failed' 
+    });
+  }
+  next();
+};
+
 // Get current user
 router.get('/me', authenticate, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-otpHash');
     res.json({ user });
   } catch (error) {
-    console.error('Error fetching user:', error);
     res.status(500).json({ message: 'Failed to fetch user' });
   }
 });
 
-// Error handler for multer
-const handleMulterError = (err, req, res, next) => {
-  if (err instanceof multer.MulterError) {
-    if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ message: 'File too large. Maximum size is 5MB.' });
+// GET /api/user/profile - Standardized profile endpoint
+router.get('/profile', authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('-passwordHash -otpHash');
+    
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
-    return res.status(400).json({ message: `File upload error: ${err.message}` });
+    
+    res.json({
+      success: true,
+      user: {
+        _id: user._id,
+        email: user.email || '',
+        name: user.name || '',
+        role: user.role || 'candidate',
+        phone: user.phone || '',
+        phoneVerified: user.phoneVerified || false,
+        currency: user.currency || 'INR',
+        compensationPaise: user.compensationPaise || 0,
+        languages: user.languages || [],
+        skills: user.selectedSkills || [],
+        resume: user.resume || null,
+        resumeUrl: user.resumeUrl || null,
+        selectedRoleId: user.selectedRoleId || null,
+        planId: user.planId || 'free',
+        isPremium: user.isPremium || false,
+        profileCompleted: !!(user.phone && user.resumeUrl)
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to fetch profile' });
   }
-  if (err) {
-    return res.status(400).json({ message: err.message || 'File upload error' });
+});
+
+// PATCH /api/user/profile - Standardized profile update endpoint
+router.patch('/profile',
+  authenticate,
+  validateProfileUpdate,
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Validation failed',
+          details: errors.array()
+        });
+      }
+      
+      const { name, phone, languages, compensationPaise, resumeId } = req.body;
+      const user = await User.findById(req.user._id);
+      
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+      
+      // Update name
+      if (name !== undefined) {
+        user.name = name.trim();
+      }
+      
+      // Update phone with E.164 validation
+      if (phone !== undefined) {
+        const phoneValidation = validatePhone(phone, 'IN');
+        if (!phoneValidation.valid) {
+          return res.status(400).json({
+            success: false,
+            error: phoneValidation.error
+          });
+        }
+        user.phone = phoneValidation.formatted;
+        user.phoneVerified = false; // Reset verification on phone change
+      }
+      
+      // Update languages
+      if (languages !== undefined) {
+        user.languages = Array.isArray(languages) ? languages : [];
+      }
+      
+      // Update compensation (store in paise)
+      if (compensationPaise !== undefined) {
+        user.compensationPaise = parseInt(compensationPaise, 10);
+        user.currency = 'INR'; // Always INR for now
+      }
+      
+      // Update resume reference if provided
+      // Note: resumeId links to existing resume metadata stored via /resume endpoint
+      // If resumeId is provided, ensure resumeUrl is also set for backward compatibility
+      if (resumeId !== undefined && resumeId) {
+        // Resume was already uploaded, just link it
+        // resumeUrl and resume metadata should already be set from upload
+        // This is just for linking purposes
+      }
+      
+      user.updatedAt = new Date();
+      await user.save();
+      
+      // Profile update logged (removed console.log for production)
+      
+      res.json({
+        success: true,
+        user: {
+          _id: user._id,
+          email: user.email || '',
+          name: user.name || '',
+          role: user.role || 'candidate',
+          phone: user.phone || '',
+          phoneVerified: user.phoneVerified || false,
+          currency: user.currency || 'INR',
+          compensationPaise: user.compensationPaise || 0,
+          languages: user.languages || [],
+          skills: user.selectedSkills || [],
+          resume: user.resume || null,
+          resumeUrl: user.resumeUrl || null,
+          selectedRoleId: user.selectedRoleId || null,
+          planId: user.planId || 'free',
+          isPremium: user.isPremium || false,
+          profileCompleted: !!(user.phone && user.resumeUrl)
+        }
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update profile',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
   }
-  next();
-};
+);
+
+// POST /api/user/resume - Upload resume with metadata
+router.post('/resume',
+  authenticate,
+  upload.single('resume'),
+  handleMulterError,
+  async (req, res) => {
+    try {
+      // File upload validation
+      
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          error: 'No file uploaded. Please select a file.'
+        });
+      }
+      
+      // Ensure req.file.path exists (diskStorage) or req.file.buffer (memoryStorage)
+      if (!req.file.path && !req.file.buffer) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('File upload error: No path or buffer found in req.file');
+        }
+        return res.status(400).json({
+          success: false,
+          error: 'File upload failed: Invalid file data'
+        });
+      }
+      
+      const user = await User.findById(req.user._id);
+      if (!user) {
+        return res.status(404).json({ success: false, error: 'User not found' });
+      }
+      
+      // Store resume metadata - simplified response
+      const resumeMetadata = {
+        id: req.file.filename,
+        filename: req.file.originalname,
+        size: req.file.size,
+        mimeType: req.file.mimetype,
+        uploadedAt: new Date()
+      };
+      
+      user.resume = {
+        id: req.file.filename,
+        ...resumeMetadata
+      };
+      user.resumeUrl = `/uploads/${req.file.filename}`;
+      
+      // Parse resume for skills extraction (only if path exists)
+      if (req.file.path) {
+        try {
+          const parsed = await parseResume(req.file.path);
+          user.resumeParsed = parsed;
+        } catch (parseError) {
+          // Continue even if parsing fails - resume upload succeeds without parsing
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Error parsing resume:', parseError);
+          }
+        }
+      }
+      
+      user.updatedAt = new Date();
+      await user.save();
+      
+      // Calculate profileCompleted for response - phone + resume only
+      const profileCompleted = !!(user.phone && user.resumeUrl);
+      
+      // Return resume metadata AND updated user with profileCompleted status
+      res.json({
+        success: true,
+        resume: resumeMetadata,
+        user: {
+          _id: user._id,
+          email: user.email || '',
+          name: user.name || '',
+          role: user.role || 'candidate',
+          phone: user.phone || '',
+          phoneVerified: user.phoneVerified || false,
+          currency: user.currency || 'INR',
+          compensationPaise: user.compensationPaise || 0,
+          languages: user.languages || [],
+          skills: user.selectedSkills || [],
+          resume: user.resume || null,
+          resumeUrl: user.resumeUrl || null,
+          selectedRoleId: user.selectedRoleId || null,
+          planId: user.planId || 'free',
+          isPremium: user.isPremium || false,
+          profileCompleted
+        }
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to upload resume'
+      });
+    }
+  }
+);
 
 // Update basic info (phone, resume, languages, CTC)
 router.put('/basic',
@@ -114,8 +353,7 @@ router.put('/basic',
           const parsed = await parseResume(req.file.path);
           user.resumeParsed = parsed;
         } catch (parseError) {
-          console.error('Error parsing resume:', parseError);
-          // Continue even if parsing fails
+          // Continue even if parsing fails - resume upload succeeds without parsing
         }
       }
 
@@ -134,7 +372,6 @@ router.put('/basic',
         }
       });
     } catch (error) {
-      console.error('Error updating user:', error);
       res.status(500).json({ 
         message: 'Failed to update profile',
         error: process.env.NODE_ENV === 'development' ? error.message : undefined
@@ -171,7 +408,6 @@ router.put('/role-skills',
         }
       });
     } catch (error) {
-      console.error('Error updating role/skills:', error);
       res.status(500).json({ message: 'Failed to update role and skills' });
     }
   }
@@ -215,7 +451,6 @@ router.post('/ats',
         atsScore: atsResult
       });
     } catch (error) {
-      console.error('Error calculating ATS score:', error);
       res.status(500).json({ 
         success: false,
         message: 'Failed to calculate ATS score' 

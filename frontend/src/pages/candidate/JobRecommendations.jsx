@@ -12,6 +12,7 @@ import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import AnimatedCard from '../../components/ui/AnimatedCard';
 import Badge from '../../components/ui/Badge';
+import ProfileCompletionModal from '../../components/ui/ProfileCompletionModal';
 import api from '../../services/api';
 
 const containerVariants = {
@@ -43,6 +44,7 @@ export default function JobRecommendations() {
     type: ''
   });
   const [showFilters, setShowFilters] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const navigate = useNavigate();
 
   // Load jobs on mount
@@ -62,7 +64,6 @@ export default function JobRecommendations() {
       setJobs(jobsData);
       setFilteredJobs(jobsData);
     } catch (err) {
-      console.error('Failed to load jobs:', err);
       setJobs([]);
       setFilteredJobs([]);
     } finally {
@@ -77,24 +78,24 @@ export default function JobRecommendations() {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(job =>
-        job.title?.toLowerCase().includes(query) ||
-        job.description?.toLowerCase().includes(query) ||
-        job.company?.toLowerCase().includes(query) ||
-        job.skillsRequired?.some(skill => skill.toLowerCase().includes(query))
+        (job.title || '').toLowerCase().includes(query) ||
+        (job.description || '').toLowerCase().includes(query) ||
+        (job.company || '').toLowerCase().includes(query) ||
+        (job.skillsRequired || []).some(skill => (skill || '').toLowerCase().includes(query))
       );
     }
 
     // Role filter
     if (filters.role) {
       filtered = filtered.filter(job =>
-        job.title?.toLowerCase().includes(filters.role.toLowerCase())
+        (job.title || '').toLowerCase().includes(filters.role.toLowerCase())
       );
     }
 
     // Location filter
     if (filters.location) {
       filtered = filtered.filter(job =>
-        job.location?.toLowerCase().includes(filters.location.toLowerCase())
+        (job.location || '').toLowerCase().includes(filters.location.toLowerCase())
       );
     }
 
@@ -137,17 +138,22 @@ export default function JobRecommendations() {
   };
 
   const handleApply = async (jobId) => {
+    // Check profile completion before allowing job application
+    if (!user?.profileCompleted) {
+      setShowProfileModal(true);
+      return;
+    }
+
     try {
-      // Apply to job - this would create an application record
-      const response = await api.post('/jobs/apply', { jobId });
+      const response = await jobApi.apply(jobId);
       
       if (response.data?.success) {
         alert('Application submitted successfully!');
-        // Refresh jobs to update status
         await loadJobs();
+      } else {
+        alert(response.data?.message || 'Failed to apply. Please try again.');
       }
     } catch (error) {
-      console.error('Error applying to job:', error);
       alert(error.response?.data?.message || 'Failed to apply. Please try again.');
     }
   };
@@ -462,6 +468,12 @@ export default function JobRecommendations() {
           </motion.div>
         )}
       </div>
+
+      <ProfileCompletionModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        requiredAction="jobs"
+      />
     </div>
   );
 }

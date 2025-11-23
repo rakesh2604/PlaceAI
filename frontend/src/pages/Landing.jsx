@@ -17,6 +17,7 @@ import Footer from '../components/layout/Footer';
 import MeetPlacedAI from '../components/sections/MeetPlacedAI';
 import ChatWidget from '../components/ui/ChatWidget';
 import AnimatedCounter from '../components/sections/AnimatedCounter';
+import PlacedAIVideo from '../components/PlacedAIVideo';
 
 // Floating glowing icons component with enhanced motion
 const FloatingGlowIcon = ({ icon: Icon, delay = 0, className = '' }) => (
@@ -653,75 +654,14 @@ const HowItWorksSection = () => {
           </div>
         </div>
 
-        {/* Enhanced Demo Video Section */}
+        {/* Video Section */}
         <motion.div
           initial={{ opacity: 0, y: 50 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
         >
-          <AnimatedCard className="overflow-hidden mb-8 border-2 border-cyan-500/30">
-            <motion.div
-              whileHover={{ scale: 1.01 }}
-              className="relative aspect-video bg-dark-900 rounded-2xl overflow-hidden"
-            >
-              <video
-                className="w-full h-full object-cover"
-                controls
-                poster="https://via.placeholder.com/1280x720?text=PlacedAI+Demo"
-              >
-                <source src="/demo-video.mp4" type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
-              <motion.div
-                animate={{
-                  boxShadow: [
-                    '0 0 20px rgba(34,211,238,0.3)',
-                    '0 0 40px rgba(34,211,238,0.6)',
-                    '0 0 20px rgba(34,211,238,0.3)',
-                  ],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }}
-                className="absolute inset-0 flex items-center justify-center bg-[#000814]/80 hover:bg-[#000814]/60 transition-colors border-2 border-cyan-500/30 rounded-2xl"
-              >
-                <motion.button
-                  whileHover={{ scale: 1.15 }}
-                  whileTap={{ scale: 0.9 }}
-                  animate={{
-                    scale: [1, 1.1, 1],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: 'easeInOut',
-                  }}
-                  className="w-20 h-20 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-neon-lg"
-                >
-                  <Play className="w-10 h-10 text-white ml-1" />
-                </motion.button>
-              </motion.div>
-            </motion.div>
-            <div className="p-8 text-center">
-              <h3 className="text-2xl font-manrope font-bold text-dark-900 dark:text-[#F8F9FA] mb-3">
-                Watch Demo Video
-              </h3>
-              <p className="text-dark-600 dark:text-[#E2E8F0] mb-6">
-                See how PlacedAI helps Indian students ace their campus placements
-              </p>
-              <Link to="/login">
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button size="lg" className="group">
-                    Start Your First AI Interview
-                    <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </motion.div>
-              </Link>
-            </div>
-          </AnimatedCard>
+          <PlacedAIVideo />
         </motion.div>
       </div>
     </section>

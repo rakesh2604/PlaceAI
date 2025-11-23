@@ -1,20 +1,69 @@
 import express from 'express';
 import { body, validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
+import { OAuth2Client } from 'google-auth-library';
 import User from '../models/User.js';
-import { sendOtpEmail } from '../services/emailService.js';
 import jwt from 'jsonwebtoken';
 
 const router = express.Router();
 
-// Generate 6-digit OTP
-const generateOTP = () => {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+// Initialize Google OAuth client
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+// Generate JWT token helper
+const generateToken = (user) => {
+  return jwt.sign(
+    { userId: user._id, email: user.email, role: user.role },
+    process.env.JWT_SECRET || 'your-secret-key',
+    { expiresIn: '7d' }
+  );
 };
 
-// Send OTP (works for both login and signup)
-router.post('/send-otp',
+// Standardize user response - ensures consistent structure across all auth endpoints
+const formatUserResponse = (user) => {
+  const hasPhone = !!user.phone;
+  const hasResume = !!user.resumeUrl;
+  const hasRole = !!user.selectedRoleId;
+  // Profile is complete if phone + resume exist (role selection is optional for basic profile)
+  const profileCompleted = hasPhone && hasResume;
+
+  return {
+    _id: user._id.toString(),
+    email: user.email || '',
+    name: user.name || '',
+    role: user.role || 'candidate',
+    phone: user.phone || '',
+    languages: user.languages || [],
+    compensationPaise: user.compensationPaise || 0,
+    skills: user.selectedSkills || [],
+    profileCompleted,
+    // Include additional fields used by frontend (with defaults)
+    resumeUrl: user.resumeUrl || null,
+    selectedRoleId: user.selectedRoleId || null,
+    planId: user.planId || 'free',
+    isPremium: user.isPremium || false,
+    resume: user.resume || null
+  };
+};
+
+// Standardized auth response helper
+const sendAuthResponse = (res, user, token, statusCode = 200) => {
+  res.status(statusCode).json({
+    success: true,
+    token,
+    user: formatUserResponse(user)
+  });
+};
+
+// Register new user
+router.post('/register',
+  body('name').trim().notEmpty().withMessage('Name is required'),
   body('email').isEmail().normalizeEmail(),
+  body('password')
+    .isLength({ min: 6 })
+    .withMessage('Password must be at least 6 characters')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number'),
   async (req, res) => {
     try {
       const errors = validationResult(req);
@@ -22,78 +71,42 @@ router.post('/send-otp',
         return res.status(400).json({ errors: errors.array() });
       }
 
-      // express-validator's normalizeEmail() modifies req.body.email
-      // Use the normalized email from req.body
-      const email = req.body.email;
-      const otp = generateOTP();
+      const { name, email, password } = req.body;
 
-      let user = await User.findOne({ email });
-      
-      // Debug: Log user lookup
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[Send OTP] Email lookup:', {
-          email: email,
-          userFound: !!user,
-          userRole: user?.role,
-          userEmail: user?.email
-        });
+      // Check if user already exists
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({ message: 'Email already registered' });
       }
-      
-      // Only create placeholder user if doesn't exist (will be finalized on OTP verify)
-      // IMPORTANT: Don't overwrite existing user's role - preserve admin/recruiter roles
-      if (!user) {
-        user = new User({ email, role: 'candidate' });
-      }
-      // If user exists, preserve their existing role (don't change admin to candidate)
 
-      await user.setOTP(otp);
+      // Create new user
+      const user = new User({
+        name: name.trim(),
+        email,
+        role: 'candidate',
+        passwordHash: await bcrypt.hash(password, 10)
+      });
+
       await user.save();
 
-      // In development, log the OTP for debugging
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`[OTP Generated] Email: ${email}, OTP: ${otp}, Expires: ${user.otpExpiry}`);
-      }
+      // Generate JWT
+      const token = generateToken(user);
 
-      // Send OTP email (non-blocking - OTP is already saved)
-      try {
-        await sendOtpEmail(email, otp);
-      } catch (emailError) {
-        // Email failed but OTP is saved, so we can still proceed
-        console.error('Email sending failed, but OTP is saved:', emailError.message);
-      }
-
-      // Check if email service is configured
-      const emailConfigured = process.env.SMTP_HOST && process.env.SMTP_USER;
-      
-      res.json({ 
-        message: emailConfigured ? 'OTP sent to email' : 'OTP generated (check console for mock mode)',
-        // In development/mock mode, always include OTP in response for testing
-        ...(process.env.NODE_ENV === 'development' && { 
-          otp: otp,
-          note: 'Development mode: OTP shown for testing. Check server console for details.'
-        })
-      });
+      // Send standardized response
+      sendAuthResponse(res, user, token, 201);
     } catch (error) {
-      console.error('Error sending OTP:', error);
       res.status(500).json({ 
-        message: 'Failed to send OTP',
+        message: 'Failed to register',
         error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   }
 );
 
-// Verify OTP (for both login and signup)
-router.post('/verify-otp',
+// Login with email and password
+router.post('/login',
   body('email').isEmail().normalizeEmail(),
-  body('otp').custom((value) => {
-    // Accept both string and number, ensure it's 6 digits
-    const otpStr = String(value).trim();
-    if (!/^\d{6}$/.test(otpStr)) {
-      throw new Error('OTP must be exactly 6 digits');
-    }
-    return true;
-  }),
+  body('password').notEmpty().withMessage('Password is required'),
   async (req, res) => {
     try {
       const errors = validationResult(req);
@@ -101,161 +114,212 @@ router.post('/verify-otp',
         return res.status(400).json({ errors: errors.array() });
       }
 
-      // express-validator's normalizeEmail() modifies req.body.email
-      // Use the normalized email from req.body
-      const email = req.body.email;
-      const { otp, name, phone, password, isSignup, isAdminLogin } = req.body;
+      const { email, password } = req.body;
 
-      // Find user with normalized email (express-validator already normalized it)
-      let user = await User.findOne({ email });
-      
-      // Debug: Log email lookup
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[OTP Verify] Email lookup:', {
-          email: email,
-          userFound: !!user,
-          userEmail: user?.email,
-          userRole: user?.role,
-          hasOtpHash: user?.otpHash ? 'yes' : 'no',
-          hasOtpExpiry: user?.otpExpiry ? 'yes' : 'no'
-        });
-      }
-      
-      // For signup, create user if doesn't exist
-      if (isSignup && !user) {
-        user = new User({
-          email,
-          name: name || '',
-          phone: phone || '',
-          role: 'candidate'
-        });
-        
-        // Set password if provided
-        if (password) {
-          await user.setPassword(password);
-        }
-        
-        // Save user before OTP verification
-        await user.save();
-      }
-      
-      // For login (existing user), update profile if provided
-      if (!isSignup && user) {
-        let updated = false;
-        if (name && name.trim() && !user.name) {
-          user.name = name.trim();
-          updated = true;
-        }
-        if (phone && phone.trim() && !user.phone) {
-          user.phone = phone.trim();
-          updated = true;
-        }
-        if (password && password.trim()) {
-          await user.setPassword(password);
-          updated = true;
-        }
-        if (updated) {
-          await user.save();
-        }
-      }
-
+      // Find user
+      const user = await User.findOne({ email });
       if (!user) {
-        return res.status(404).json({ message: 'User not found. Please request OTP again.' });
+        return res.status(401).json({ message: 'Invalid email or password' });
       }
 
-      // Verify OTP - ensure OTP is a string for comparison
-      const otpString = String(otp).trim();
-      
-      // Debug logging in development
-      if (process.env.NODE_ENV === 'development') {
-        console.log('OTP Verification Debug:', {
-          email: email,
-          otpReceived: otpString,
-          hasOtpHash: !!user.otpHash,
-          hasOtpExpiry: !!user.otpExpiry,
-          otpExpiry: user.otpExpiry,
-          isExpired: user.otpExpiry ? new Date() > user.otpExpiry : 'N/A'
+      // Check if user has password (not OAuth-only user)
+      if (!user.passwordHash) {
+        return res.status(401).json({ 
+          message: 'This account was created with Google. Please use Google Sign-In.' 
         });
       }
-      
-      const isValid = await user.compareOTP(otpString);
+
+      // Verify password
+      const isValid = await bcrypt.compare(password, user.passwordHash);
       if (!isValid) {
-        // Provide more detailed error message
-        let errorMessage = 'Invalid or expired OTP';
-        if (!user.otpHash || !user.otpExpiry) {
-          errorMessage = 'No OTP found. Please request a new OTP.';
-        } else if (new Date() > user.otpExpiry) {
-          errorMessage = 'OTP has expired. Please request a new OTP.';
-        }
-        return res.status(401).json({ message: errorMessage });
+        return res.status(401).json({ message: 'Invalid email or password' });
       }
 
-      // If this is an admin login attempt and user doesn't have admin role,
-      // check if email matches admin pattern or allow role update
-      // For security: only allow if email matches known admin pattern or is in admin list
-      if (isAdminLogin && user.role !== 'admin') {
-        // Check if email should be admin (you can add your admin emails here)
-        const adminEmails = [
-          'admin@placedai.com',
-          'rakeshsaw.rakeshsaw10@gmail.com',
-          'rakesh.kr2604@gmail.com' // Add your admin email
-        ];
-        
-        if (adminEmails.includes(email.toLowerCase())) {
-          user.role = 'admin';
-          await user.save();
-        } else {
-          // OTP is correct but user doesn't have admin role and email not in admin list
-          return res.status(403).json({ 
-            message: 'Access denied. Admin access required. Please contact support to grant admin privileges.',
-            role: user.role 
-          });
-        }
+      // Check if user is blocked
+      if (user.isBlocked) {
+        return res.status(403).json({ 
+          message: 'Your account has been blocked. Please contact support.' 
+        });
       }
-
-      // For signup, update user info if provided
-      if (isSignup) {
-        if (name) user.name = name;
-        if (phone) user.phone = phone;
-        if (password) {
-          await user.setPassword(password);
-        }
-      }
-
-      // Clear OTP
-      user.otpHash = undefined;
-      user.otpExpiry = undefined;
-      await user.save();
 
       // Generate JWT
-      const token = jwt.sign(
-        { userId: user._id, email: user.email, role: user.role },
-        process.env.JWT_SECRET || 'your-secret-key',
-        { expiresIn: '7d' }
-      );
+      const token = generateToken(user);
 
-      res.json({
-        token,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          phone: user.phone,
-          resumeUrl: user.resumeUrl,
-          selectedRoleId: user.selectedRoleId,
-          planId: user.planId,
-          isPremium: user.isPremium
-        }
-      });
+      // Send standardized response
+      sendAuthResponse(res, user, token);
     } catch (error) {
-      console.error('Error verifying OTP:', error);
-      res.status(500).json({ message: 'Failed to verify OTP' });
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error logging in:', error);
+      }
+      res.status(500).json({ 
+        message: 'Failed to login',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
     }
   }
 );
 
-// Recruiter register
+// Google OAuth authentication
+router.post('/google',
+  body('credential').notEmpty().withMessage('Google credential is required'),
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { credential } = req.body;
+
+      if (!process.env.GOOGLE_CLIENT_ID) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('GOOGLE_CLIENT_ID not configured');
+        }
+        return res.status(500).json({ message: 'Google OAuth not configured' });
+      }
+
+      // Verify Google ID token
+      let ticket;
+      try {
+        ticket = await googleClient.verifyIdToken({
+          idToken: credential,
+          audience: process.env.GOOGLE_CLIENT_ID
+        });
+      } catch (googleError) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Google token verification failed:', googleError);
+        }
+        return res.status(401).json({ message: 'Invalid Google token' });
+      }
+
+      const payload = ticket.getPayload();
+      const { sub: googleId, email, name, picture } = payload;
+
+      if (!email) {
+        return res.status(400).json({ message: 'Email not provided by Google' });
+      }
+
+      // Find or create user
+      let user = await User.findOne({ email });
+
+      if (user) {
+        // User exists - update Google ID if not set
+        if (!user.googleId) {
+          user.googleId = googleId;
+          if (!user.name && name) {
+            user.name = name;
+          }
+          await user.save();
+        } else if (user.googleId !== googleId) {
+          return res.status(401).json({ message: 'Google account mismatch' });
+        }
+      } else {
+        // Create new user
+        user = new User({
+          email,
+          name: name || '',
+          googleId,
+          role: 'candidate'
+        });
+        await user.save();
+      }
+
+      // Check if user is blocked
+      if (user.isBlocked) {
+        return res.status(403).json({ 
+          message: 'Your account has been blocked. Please contact support.' 
+        });
+      }
+
+      // Generate JWT
+      const token = generateToken(user);
+
+      // Send standardized response
+      sendAuthResponse(res, user, token);
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error with Google authentication:', error);
+      }
+      res.status(500).json({ 
+        message: 'Failed to authenticate with Google',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  }
+);
+
+// Admin login (password-based)
+router.post('/admin/login',
+  body('email').isEmail().normalizeEmail(),
+  body('password').notEmpty().withMessage('Password is required'),
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ 
+          message: 'Validation failed',
+          errors: errors.array() 
+        });
+      }
+
+      const { email, password } = req.body;
+      
+      // Normalize email for lookup (lowercase and trim)
+      const normalizedEmail = email.toLowerCase().trim();
+
+      // Find user by normalized email
+      const user = await User.findOne({ email: normalizedEmail });
+      if (!user) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+
+      // Check if user has password
+      if (!user.passwordHash) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+
+      // Verify password
+      const isValid = await bcrypt.compare(password, user.passwordHash);
+      if (!isValid) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+
+      // Check admin role
+      const adminEmails = [
+        'admin@placedai.com',
+        'rakeshsaw.rakeshsaw10@gmail.com',
+        'rakesh.kr2604@gmail.com'
+      ];
+
+      if (user.role !== 'admin') {
+        if (adminEmails.includes(normalizedEmail)) {
+          user.role = 'admin';
+          await user.save();
+        } else {
+          return res.status(403).json({ 
+            message: 'Access denied. Admin access required.' 
+          });
+        }
+      }
+
+      // Generate JWT
+      const token = generateToken(user);
+
+      // Send standardized response for admin login
+      sendAuthResponse(res, user, token);
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error logging in admin:', error);
+      }
+      res.status(500).json({ 
+        message: 'Failed to login',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  }
+);
+
+// Recruiter register (keep existing)
 router.post('/recruiter/register',
   body('email').isEmail().normalizeEmail(),
   body('password').isLength({ min: 6 }),
@@ -269,21 +333,18 @@ router.post('/recruiter/register',
 
       const { email, password, companyName } = req.body;
 
-      // Check if user exists
       let user = await User.findOne({ email });
       if (user) {
         return res.status(400).json({ message: 'Email already registered' });
       }
 
-      // Create user
       user = new User({
         email,
         role: 'recruiter',
-        otpHash: await bcrypt.hash(password, 10) // Store hashed password
+        passwordHash: await bcrypt.hash(password, 10)
       });
       await user.save();
 
-      // Create recruiter profile
       const Recruiter = (await import('../models/Recruiter.js')).default;
       const recruiter = new Recruiter({
         userId: user._id,
@@ -294,12 +355,7 @@ router.post('/recruiter/register',
       });
       await recruiter.save();
 
-      // Generate JWT
-      const token = jwt.sign(
-        { userId: user._id, email: user.email, role: user.role },
-        process.env.JWT_SECRET,
-        { expiresIn: '7d' }
-      );
+      const token = generateToken(user);
 
       res.json({
         token,
@@ -314,13 +370,15 @@ router.post('/recruiter/register',
         }
       });
     } catch (error) {
-      console.error('Error registering recruiter:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error registering recruiter:', error);
+      }
       res.status(500).json({ message: 'Failed to register' });
     }
   }
 );
 
-// Recruiter login
+// Recruiter login (keep existing)
 router.post('/recruiter/login',
   body('email').isEmail().normalizeEmail(),
   body('password').notEmpty(),
@@ -338,8 +396,11 @@ router.post('/recruiter/login',
         return res.status(401).json({ message: 'Invalid credentials' });
       }
 
-      // Compare password hash
-      const isValid = await bcrypt.compare(password, user.otpHash);
+      if (!user.passwordHash) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+
+      const isValid = await bcrypt.compare(password, user.passwordHash);
       if (!isValid) {
         return res.status(401).json({ message: 'Invalid credentials' });
       }
@@ -347,11 +408,7 @@ router.post('/recruiter/login',
       const Recruiter = (await import('../models/Recruiter.js')).default;
       const recruiter = await Recruiter.findOne({ userId: user._id });
 
-      const token = jwt.sign(
-        { userId: user._id, email: user.email, role: user.role },
-        process.env.JWT_SECRET,
-        { expiresIn: '7d' }
-      );
+      const token = generateToken(user);
 
       res.json({
         token,
@@ -367,11 +424,12 @@ router.post('/recruiter/login',
         } : null
       });
     } catch (error) {
-      console.error('Error logging in recruiter:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error logging in recruiter:', error);
+      }
       res.status(500).json({ message: 'Failed to login' });
     }
   }
 );
 
 export default router;
-

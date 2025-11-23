@@ -41,8 +41,7 @@ export default function OnboardingOtp() {
     // Auto-fill OTP in development mode if provided
     if (devOtp && devOtp.length === 6) {
       setOtp(devOtp.split(''));
-      // Show a helpful message
-      console.log('🔑 Development OTP auto-filled:', devOtp);
+      // Development OTP auto-filled (no console log in production)
     }
     inputRefs.current[0]?.focus();
   }, [devOtp]);
@@ -98,16 +97,9 @@ export default function OnboardingOtp() {
       
       // For signup (new user), always go to onboarding
       // For login (existing user), check if profile is complete
-      if (!isLogin || !response.data.user.phone || !response.data.user.resumeUrl) {
-        // New user or incomplete profile - go to onboarding
-        navigate('/onboarding');
-      } else if (!response.data.user.selectedRoleId) {
-        // Profile complete but no role selected
-        navigate('/jobs');
-      } else {
-        // Everything complete - go to dashboard
-        navigate('/dashboard');
-      }
+      // Always navigate to dashboard after successful auth
+      // Dashboard will handle profile completeness checks
+      navigate('/dashboard');
     } catch (err) {
       // Never show "backend not reachable" here - that's only for health check
       // Show actual error messages for all API errors (invalid OTP, expired, etc.)

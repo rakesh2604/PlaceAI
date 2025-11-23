@@ -26,7 +26,6 @@ export default function InterviewLiveNew() {
       setInterview(response.data.interview);
       setStage('session');
     } catch (error) {
-      console.error('Failed to begin interview:', error);
       alert('Failed to start interview session. Please try again.');
     }
   };

@@ -47,17 +47,11 @@ export default function NavbarCandidate() {
                 >
                   Dashboard
                 </Link>
-                <Link
-                  to="/usage"
-                  className="text-dark-700 dark:text-dark-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
-                >
-                  Usage
-                </Link>
                 <ThemeToggle />
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-dark-100 dark:bg-dark-800">
                     <User className="w-4 h-4" />
-                    <span className="text-sm">{user.email}</span>
+                    <span className="text-sm">{user?.email || 'User'}</span>
                   </div>
                   <Button variant="ghost" size="sm" onClick={handleLogout}>
                     Logout

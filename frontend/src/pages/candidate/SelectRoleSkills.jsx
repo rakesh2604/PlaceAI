@@ -44,7 +44,7 @@ export default function SelectRoleSkills() {
       setJob(response.data.job);
       setSelectedSkills(response.data.job.skillsRequired || []);
     } catch (err) {
-      console.error('Failed to load job:', err);
+      // Error handled - loading state will show
     }
   };
 
@@ -60,7 +60,7 @@ export default function SelectRoleSkills() {
     if (selectedSkills.length === 0) return;
     if (!jobId) {
       alert('No job selected. Please go back and select a job.');
-      navigate('/jobs');
+      navigate('/dashboard/jobs');
       return;
     }
 
@@ -70,7 +70,6 @@ export default function SelectRoleSkills() {
       updateUser({ selectedRoleId: jobId, selectedSkills });
       navigate('/interview/intro', { state: { jobId } });
     } catch (err) {
-      console.error('Failed to save selection:', err);
       alert(err.response?.data?.message || 'Failed to save selection. Please try again.');
     } finally {
       setLoading(false);

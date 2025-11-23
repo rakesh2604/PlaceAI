@@ -1,19 +1,31 @@
-import express from 'express';
-import mongoose from 'mongoose';
-import cors from 'cors';
-import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { Server as SocketIOServer } from 'socket.io';
-import jwt from 'jsonwebtoken';
-import User from './models/User.js';
+import { mkdir } from 'fs/promises';
 
 // Define __dirname for ESM compatibility (needed before dotenv.config)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load environment variables FIRST, before any routes or middleware
+// Load environment variables FIRST, before any other imports
+import dotenv from 'dotenv';
 dotenv.config({ path: path.resolve(__dirname, '.env') });
+
+// ENV CHECK - Log environment variable status (only in development)
+if (process.env.NODE_ENV === 'development') {
+  console.log('ENV CHECK:', {
+    JWT_SECRET: !!process.env.JWT_SECRET,
+    GOOGLE_CLIENT_ID: !!process.env.GOOGLE_CLIENT_ID,
+    MONGO_URI: !!process.env.MONGO_URI
+  });
+}
+
+// Now import everything else AFTER dotenv loads
+import express from 'express';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import { Server as SocketIOServer } from 'socket.io';
+import jwt from 'jsonwebtoken';
+import User from './models/User.js';
 
 // Import routes
 import authRoutes from './routes/authRoutes.js';
@@ -41,30 +53,47 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Ensure uploads directory exists and serve uploaded files
+const uploadsDir = path.join(__dirname, 'uploads');
+(async () => {
+  try {
+    await mkdir(uploadsDir, { recursive: true });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('✅ Uploads directory ensured:', uploadsDir);
+    }
+  } catch (err) {
+    if (process.env.NODE_ENV === 'development') {
+      console.error('⚠️  Warning: Could not create uploads directory:', err.message);
+    }
+  }
+})();
+
 // Serve uploaded files
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(uploadsDir));
 
 // Connect to MongoDB with improved error handling
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/placedai';
 
-if (!process.env.MONGO_URI) {
+if (!process.env.MONGO_URI && process.env.NODE_ENV === 'development') {
   console.warn('⚠️  MONGO_URI not found in .env, using default: mongodb://localhost:27017/placedai');
 }
 
 mongoose.connect(MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
   serverSelectionTimeoutMS: 5000,
   socketTimeoutMS: 45000,
 })
   .then(() => {
-    console.log('✅ MongoDB connected successfully');
-    console.log(`   Database: ${mongoose.connection.db.databaseName}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('✅ MongoDB connected successfully');
+      console.log(`   Database: ${mongoose.connection.db.databaseName}`);
+    }
   })
   .catch(err => {
     console.error('❌ MongoDB connection error:', err.message);
-    console.error('   Please check your MONGO_URI in .env file');
-    console.error('   Example: MONGO_URI=mongodb://localhost:27017/placedai');
+    if (process.env.NODE_ENV === 'development') {
+      console.error('   Please check your MONGO_URI in .env file');
+      console.error('   Example: MONGO_URI=mongodb://localhost:27017/placedai');
+    }
     // Don't exit in development - allow server to start for testing
     if (process.env.NODE_ENV === 'production') {
       process.exit(1);
@@ -73,7 +102,9 @@ mongoose.connect(MONGO_URI, {
 
 // Handle MongoDB connection events
 mongoose.connection.on('disconnected', () => {
-  console.warn('⚠️  MongoDB disconnected');
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('⚠️  MongoDB disconnected');
+  }
 });
 
 mongoose.connection.on('error', (err) => {
@@ -165,7 +196,9 @@ app.use('/api/*', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
+  if (process.env.NODE_ENV === 'development') {
+    console.error('Error:', err);
+  }
   res.status(err.status || 500).json({
     message: err.message || 'Internal server error',
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
@@ -174,7 +207,9 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`Server running on port ${PORT}`);
+  }
 });
 
 const io = new SocketIOServer(server, {
@@ -212,12 +247,16 @@ io.use(async (socket, next) => {
 const activeStreams = new Map(); // interviewId -> { socket, lastOffset }
 
 io.on('connection', (socket) => {
-  console.log(`Client connected: ${socket.userId}`);
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`Client connected: ${socket.userId}`);
+  }
 
   // Join interview room for transcript streaming
   socket.on('join-interview', (interviewId) => {
     socket.join(`interview:${interviewId}`);
-    console.log(`User ${socket.userId} joined interview ${interviewId}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`User ${socket.userId} joined interview ${interviewId}`);
+    }
   });
 
   // Handle transcript chunk streaming
@@ -265,7 +304,9 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log(`Client disconnected: ${socket.userId}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Client disconnected: ${socket.userId}`);
+    }
     // Clean up active streams for this socket
     for (const [key, stream] of activeStreams.entries()) {
       if (stream.socket === socket) {
@@ -276,4 +317,3 @@ io.on('connection', (socket) => {
 });
 
 export { io };
-

@@ -18,10 +18,30 @@ const userSchema = new mongoose.Schema({
     enum: ['candidate', 'recruiter', 'admin'],
     default: 'candidate'
   },
-  passwordHash: String, // For optional password storage
-  otpHash: String,
-  otpExpiry: Date,
+  passwordHash: String, // For password storage
+  googleId: String, // For Google OAuth
+  otpHash: String, // Deprecated - kept for migration
+  otpExpiry: Date, // Deprecated - kept for migration
   phone: String,
+  phoneVerified: {
+    type: Boolean,
+    default: false
+  },
+  currency: {
+    type: String,
+    default: 'INR'
+  },
+  compensationPaise: {
+    type: Number,
+    default: 0
+  },
+  resume: {
+    id: String,
+    filename: String,
+    size: Number,
+    mimeType: String,
+    uploadedAt: Date
+  },
   resumeUrl: String,
   resumeParsed: {
     skills: [String],
@@ -72,11 +92,15 @@ const userSchema = new mongoose.Schema({
 
 userSchema.methods.compareOTP = async function(otp) {
   if (!this.otpHash || !this.otpExpiry) {
-    console.log('[OTP Compare] Missing OTP hash or expiry');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[OTP Compare] Missing OTP hash or expiry');
+    }
     return false;
   }
   if (new Date() > this.otpExpiry) {
-    console.log('[OTP Compare] OTP expired. Expiry:', this.otpExpiry, 'Now:', new Date());
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[OTP Compare] OTP expired. Expiry:', this.otpExpiry, 'Now:', new Date());
+    }
     return false;
   }
   // Ensure OTP is a string for bcrypt comparison

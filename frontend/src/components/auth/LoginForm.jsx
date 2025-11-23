@@ -1,14 +1,83 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '../../services/candidateApi';
+import { useAuthStore } from '../../store/authStore';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { setAuth } = useAuthStore();
+
+  const handleGoogleResponse = useCallback(async (response) => {
+    if (!response.credential) {
+      setError('Google authentication failed');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const authResponse = await authApi.googleAuth(response.credential);
+      
+      // Validate response structure
+      if (!authResponse.data?.user || !authResponse.data?.token) {
+        throw new Error('Invalid response from server');
+      }
+      
+      setAuth(authResponse.data.user, authResponse.data.token);
+      
+      // Navigate to dashboard (profile completeness check happens on dashboard)
+      navigate('/dashboard');
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || 
+                          err.userMessage || 
+                          err.message || 
+                          'Google authentication failed';
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate, setAuth]);
+
+  // Initialize Google Sign-In
+  useEffect(() => {
+    const initGoogleSignIn = () => {
+      if (typeof window !== 'undefined' && window.google?.accounts?.id) {
+        const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+        if (!clientId) {
+          // Google Client ID not configured (silent in production)
+          return;
+        }
+
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: handleGoogleResponse
+        });
+
+        const buttonElement = document.getElementById('google-signin-button');
+        if (buttonElement) {
+          window.google.accounts.id.renderButton(buttonElement, {
+            type: 'standard',
+            theme: 'outline',
+            size: 'large',
+            width: '100%',
+            text: 'signin_with'
+          });
+        }
+      } else {
+        // Retry after a short delay if Google script hasn't loaded yet
+        setTimeout(initGoogleSignIn, 100);
+      }
+    };
+
+    initGoogleSignIn();
+  }, [handleGoogleResponse]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -16,31 +85,24 @@ export default function LoginForm() {
     setLoading(true);
 
     try {
-      const response = await authApi.sendOTP(email);
+      const response = await authApi.login(email, password);
       
-      // If in development mode and OTP is returned (mock mode), show it
-      if (response.data?.otp) {
-        console.log('🔑 Development OTP:', response.data.otp);
-        alert(`Development Mode: Your OTP is ${response.data.otp}\n\n${response.data.note || ''}`);
+      // Validate response structure
+      if (!response.data?.user || !response.data?.token) {
+        throw new Error('Invalid response from server');
       }
       
-      navigate('/verify-otp', { state: { email, otp: response.data?.otp, isLogin: true } });
-    } catch (err) {
-      // Only show "backend unreachable" if it's actually a network/server error
-      // Never show "backend not reachable" here - that's only for health check
-      // Show actual error messages for all API errors
-      const errorMessage = err.userMessage || 
-                          err.response?.data?.message || 
-                          err.response?.data?.errors?.[0]?.msg ||
-                          err.message || 
-                          'Failed to send OTP. Please check your email and try again.';
-      setError(errorMessage);
+      setAuth(response.data.user, response.data.token);
       
-      console.error('OTP Send Error:', {
-        message: err.message,
-        response: err.response?.data,
-        code: err.code,
-      });
+      // Navigate to dashboard (profile completeness check happens on dashboard)
+      navigate('/dashboard');
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || 
+                          err.response?.data?.errors?.[0]?.msg ||
+                          err.userMessage || 
+                          err.message || 
+                          'Invalid email or password';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -55,6 +117,15 @@ export default function LoginForm() {
         onChange={(e) => setEmail(e.target.value)}
         placeholder="you@example.com"
         required
+      />
+
+      <Input
+        label="Password"
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder="Enter your password"
+        required
         error={error}
       />
 
@@ -64,9 +135,21 @@ export default function LoginForm() {
         disabled={loading}
         loading={loading}
       >
-        {loading ? 'Sending OTP...' : 'Continue'}
+        {loading ? 'Logging in...' : 'Login'}
       </Button>
+
+      <div className="relative my-6">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-dark-200 dark:border-dark-700"></div>
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="px-2 bg-white dark:bg-dark-800 text-dark-500 dark:text-dark-400">
+            Or continue with
+          </span>
+        </div>
+      </div>
+
+      <div id="google-signin-button" className="w-full"></div>
     </form>
   );
 }
-

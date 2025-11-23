@@ -1,157 +1,356 @@
-# PlacedAI - AI-Powered Placement Prep Platform
+# PlacedAI - AI-Powered Placement Preparation Platform
 
-**PlacedAI** is an AI-powered placement preparation platform designed specifically for Indian students. We help students from any college crack campus placements through AI-powered mock interviews, ATS resume scoring, personalized job recommendations, and real-time feedback.
+**PlacedAI** is a comprehensive SaaS platform designed to help Indian students crack campus placements through AI-powered mock interviews, ATS resume scoring, personalized job recommendations, and real-time feedback.
 
-## Product Description
+## 📋 Overview
 
-PlacedAI is a comprehensive SaaS platform that democratizes access to quality placement preparation. Whether you're from an IIT, NIT, or a Tier-3 college, PlacedAI provides you with the same high-quality AI-powered tools to prepare for placements.
+PlacedAI democratizes access to quality placement preparation by providing students from any college (IIT, NIT, or Tier-3) with the same high-quality AI-powered tools. Our platform includes:
 
-### Key Features
+- **AI-Powered Mock Interviews**: Practice with AI that simulates real interview scenarios with video/audio recording
+- **ATS Resume Scoring**: Optimize your resume for Applicant Tracking Systems with detailed feedback
+- **Resume Builder**: Create professional resumes with AI-powered suggestions and templates
+- **Resume Lab**: Upload and analyze existing resumes for improvements
+- **Personalized Job Recommendations**: Get matched with roles that fit your profile and skills
+- **Real-time AI Feedback**: Receive instant feedback on interview performance with detailed analytics
+- **Admin Management System**: Comprehensive admin dashboard for platform management
+- **Recruiter CRM**: Browse candidates, send opt-in requests, and manage job postings
 
-- **AI-Powered Mock Interviews**: Practice with AI that simulates real interview scenarios
-- **ATS Resume Scoring**: Optimize your resume for Applicant Tracking Systems
-- **Resume Builder**: Create professional resumes with AI-powered suggestions
-- **Personalized Job Suggestions**: Get matched with roles that fit your profile
-- **Real-time AI Feedback**: Receive instant feedback on interview performance
-- **Shareable Interview Feedback**: Share your progress with mentors and peers
-- **Plans**: Free tier for basic features, Premium for advanced capabilities
-- **Admin Panel**: Comprehensive admin dashboard for platform management
-
-## Features
-
-- **Candidate Onboarding**: Email OTP authentication, resume upload, profile completion
-- **AI Interviews**: Video/audio recording with AI-powered scoring
-- **Recruiter Panel**: Browse candidates, send opt-in requests, manage jobs
-- **Admin Dashboard**: Manage users, recruiters, interviews, and payments
-- **Notifications**: Email and WhatsApp integration
-- **Resume Parsing**: Automatic extraction of skills and experience
-- **Payments**: Stripe integration for recruiter plans
-
-## Tech Stack
+## 🚀 Tech Stack
 
 ### Backend
-- Node.js + Express
-- MongoDB + Mongoose
-- JWT Authentication
-- Multer for file uploads
-- Nodemailer for emails
-- Twilio for WhatsApp
-- Stripe for payments
+
+- **Runtime**: Node.js (v18+)
+- **Framework**: Express.js
+- **Database**: MongoDB with Mongoose ODM
+- **Authentication**: JWT (JSON Web Tokens), Google OAuth2
+- **File Uploads**: Multer
+- **Password Hashing**: Bcrypt.js
+- **Email**: Nodemailer (SMTP)
+- **WhatsApp**: Twilio
+- **Payments**: Stripe
+- **AI Integration**: OpenAI-compatible API
+- **WebSockets**: Socket.IO (for real-time features)
+- **PDF Processing**: pdf-parse, puppeteer
+- **Resume Parsing**: Custom parsers for PDF, DOC, DOCX
 
 ### Frontend
-- React + Vite
-- React Router
-- TailwindCSS
-- Zustand for state management
-- Axios for API calls
-- Framer Motion for animations
 
-## Quick Start
+- **Framework**: React 18 with Vite
+- **Routing**: React Router v6
+- **State Management**: Zustand
+- **Styling**: TailwindCSS with custom theme
+- **UI Components**: Custom component library (inspired by shadcn/ui patterns)
+- **Animations**: Framer Motion
+- **HTTP Client**: Axios
+- **Icons**: Lucide React
+- **Phone Input**: react-phone-number-input
+- **Build Tool**: Vite 5
+
+## ✨ Features
+
+### User Authentication & Profile
+
+- **Email OTP Authentication**: Secure login with one-time password sent via email
+- **Google Sign-In**: OAuth2 authentication with Google
+- **Profile Completion System**: Guided onboarding with resume upload and skill selection
+- **Phone Verification**: International phone number support with validation
+- **Role Selection**: Choose target job roles and required skills
+- **Plan Management**: Free, Premium, and Enterprise tiers with usage limits
+
+### Resume Features
+
+- **Resume Upload**: Support for PDF, DOC, DOCX formats
+- **Automatic Parsing**: Extract skills, experience, education automatically
+- **Resume Builder**: Create resumes with multiple templates
+- **ATS Scoring**: Get detailed ATS compatibility scores with improvement suggestions
+- **Resume Templates**: Professional templates for different industries
+- **Resume Export**: Generate PDF versions of resumes
+
+### AI Interview System
+
+- **Mock Interviews**: Practice interviews for specific job roles
+- **Video/Audio Recording**: Record responses during interviews
+- **Real-time Transcription**: Live transcript streaming during interviews
+- **AI Scoring**: Get scored on communication, confidence, technical knowledge, and more
+- **Detailed Feedback**: Receive strengths, improvements, and detailed analytics
+- **Interview History**: Track all past interviews and performance trends
+- **Shareable Results**: Share interview feedback with mentors and peers
+
+### Job Recommendations
+
+- **Personalized Matching**: AI-powered job recommendations based on profile
+- **Job Applications**: Apply to jobs directly through the platform
+- **Application Tracking**: Track all job applications in one place
+- **Role-Based Matching**: Match based on selected role and skills
+
+### Admin Panel
+
+- **User Management**: View, block, and manage all users
+- **Recruiter Management**: Approve/deny recruiter requests
+- **Interview Analytics**: View all interviews and AI scores
+- **Payment Tracking**: Monitor Stripe payments and subscriptions
+- **Support Tickets**: Manage customer support tickets
+- **Usage Statistics**: Track platform usage and metrics
+- **Admin Creation**: Create new admin accounts with role-based access
+- **Password Management**: Admins can reset their own passwords
+
+### Recruiter Features
+
+- **Candidate Browsing**: Browse candidate profiles and interview results
+- **Opt-In Requests**: Send connection requests to candidates
+- **Job Posting**: Create and manage job listings
+- **Payment Plans**: Subscribe to Basic, Premium, or Enterprise plans
+- **Credit System**: Track opt-in requests and credits usage
+
+## 📁 Project Structure
+
+```
+PlacedAI/
+├── README.md                    # This file
+├── package.json                 # Root package with unified scripts
+├── .gitignore                   # Git ignore rules
+│
+├── backend/                     # Backend API server
+│   ├── .env.example            # Backend environment variables template
+│   ├── package.json
+│   ├── server.js               # Express server entry point
+│   │
+│   ├── models/                 # Mongoose models
+│   │   ├── User.js
+│   │   ├── Job.js
+│   │   ├── Interview.js
+│   │   ├── Recruiter.js
+│   │   ├── Payment.js
+│   │   └── ...
+│   │
+│   ├── routes/                 # Express routes (all under /api prefix)
+│   │   ├── authRoutes.js
+│   │   ├── userRoutes.js
+│   │   ├── jobRoutes.js
+│   │   ├── interviewRoutes.js
+│   │   ├── adminRoutes.js
+│   │   └── ...
+│   │
+│   ├── middleware/             # Express middleware
+│   │   ├── auth.js            # JWT authentication
+│   │   ├── idempotency.js     # Request idempotency
+│   │   ├── usageCheck.js      # Usage limit checks
+│   │   └── validateProfile.js # Profile validation
+│   │
+│   ├── services/              # Business logic services
+│   │   ├── emailService.js    # Email sending (Nodemailer)
+│   │   ├── whatsappService.js # WhatsApp (Twilio)
+│   │   ├── paymentService.js  # Payments (Stripe)
+│   │   └── aiScoringService.js # AI scoring
+│   │
+│   ├── src/                   # Additional source files
+│   │   ├── ai/               # AI integration modules
+│   │   │   ├── aiBrain.js
+│   │   │   ├── interviewAI.js
+│   │   │   ├── resumeAI.js
+│   │   │   └── ...
+│   │   └── config/           # Configuration files
+│   │       └── plans.js      # Subscription plan definitions
+│   │
+│   ├── utils/                # Utility functions
+│   │   ├── resumeParser.js   # Resume parsing logic
+│   │   ├── linkedInParser.js # LinkedIn import
+│   │   └── templateParser.js # Template parsing
+│   │
+│   ├── scripts/              # Utility scripts
+│   │   └── seed.js          # Database seeding
+│   │
+│   └── uploads/              # File uploads directory
+│       ├── resumes/         # User resumes
+│       └── templates/       # Resume templates
+│
+└── frontend/                 # React frontend application
+    ├── .env.example         # Frontend environment variables template
+    ├── package.json
+    ├── vite.config.js       # Vite configuration with proxy
+    ├── tailwind.config.js   # TailwindCSS configuration
+    ├── index.html           # HTML entry point
+    │
+    ├── public/              # Static assets
+    │   └── videos/         # Video assets
+    │
+    └── src/                 # React source code
+        ├── main.jsx        # React entry point
+        ├── App.jsx         # Root component
+        ├── index.css       # Global styles
+        │
+        ├── components/     # Reusable components
+        │   ├── auth/      # Authentication components
+        │   ├── layout/    # Layout components (Navbar, Sidebar, etc.)
+        │   ├── ui/        # UI components (Button, Input, Card, etc.)
+        │   ├── interview/ # Interview-related components
+        │   └── resume/    # Resume-related components
+        │
+        ├── pages/          # Page components
+        │   ├── Landing.jsx
+        │   ├── candidate/  # Candidate pages
+        │   ├── admin/      # Admin pages
+        │   ├── recruiter/  # Recruiter pages
+        │   └── auth/       # Auth pages
+        │
+        ├── routes/         # Route definitions
+        │   ├── CandidateRoutes.jsx
+        │   ├── AdminRoutes.jsx
+        │   └── RecruiterRoutes.jsx
+        │
+        ├── services/       # API service layer
+        │   ├── api.js      # Axios instance and interceptors
+        │   ├── candidateApi.js
+        │   ├── adminApi.js
+        │   └── recruiterApi.js
+        │
+        ├── store/          # Zustand state stores
+        │   ├── authStore.js
+        │   ├── themeStore.js
+        │   └── toastStore.js
+        │
+        └── utils/          # Utility functions
+            ├── cn.js       # Class name utility
+            ├── currencyFormatter.js
+            ├── networkSimulator.js
+            └── speechUtils.js
+```
+
+## 🔧 Environment Setup
 
 ### Prerequisites
-- Node.js (v18+)
-- MongoDB (local or Atlas)
-- Stripe account (for payments, optional)
-- Twilio account (for WhatsApp, optional)
-- SMTP email service (Gmail, SendGrid, etc., optional)
 
-### Installation
+- **Node.js**: v18 or higher
+- **MongoDB**: Local installation or MongoDB Atlas account
+- **npm** or **yarn**: Package manager
+- **Git**: Version control
 
-1. **Install all dependencies** (root, backend, and frontend):
+### Optional Services (Work in Mock Mode)
+
+- **SMTP Email Service**: Gmail, SendGrid, or any SMTP provider (for OTP emails)
+- **Twilio Account**: For WhatsApp notifications
+- **OpenAI API Key**: For AI-powered features
+- **Stripe Account**: For payment processing
+- **Google OAuth**: For Google Sign-In
+
+### Backend Environment Variables
+
+1. Copy the environment template:
+   ```bash
+   cd backend
+   cp .env.example .env
+   ```
+
+2. Edit `backend/.env` and configure the following:
+
+   ```env
+   # Server
+   PORT=5000
+   NODE_ENV=development
+
+   # Database (Required)
+   MONGO_URI=mongodb://localhost:27017/placedai
+   # Or MongoDB Atlas:
+   # MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/placedai
+
+   # Authentication (Required)
+   JWT_SECRET=your-super-secret-jwt-key-change-in-production
+   GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+
+   # Frontend URL (Required)
+   FRONTEND_URL=http://localhost:5173
+
+   # Email Service (Optional - works in mock mode)
+   EMAIL_FROM=noreply@placedai.com
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_USER=your-email@gmail.com
+   SMTP_PASS=your-app-password
+
+   # WhatsApp Service (Optional - works in mock mode)
+   TWILIO_ACCOUNT_SID=your-twilio-account-sid
+   TWILIO_AUTH_TOKEN=your-twilio-auth-token
+   TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
+
+   # AI Service (Optional - works in mock mode)
+   AI_API_BASE_URL=https://api.openai.com/v1
+   AI_API_KEY=your-openai-api-key
+
+   # Stripe Payments (Optional - works in mock mode)
+   STRIPE_SECRET_KEY=sk_test_your-stripe-secret-key
+   STRIPE_WEBHOOK_SECRET=whsec_your-webhook-secret
+   ```
+
+**Important Notes:**
+- All services work in **mock mode** if credentials are not provided (perfect for development)
+- In mock mode, OTPs are logged to console instead of being emailed
+- Generate a strong JWT_SECRET: `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`
+- Never commit `.env` files to version control
+
+### Frontend Environment Variables
+
+1. Copy the environment template:
+   ```bash
+   cd frontend
+   cp .env.example .env.local
+   ```
+
+2. Edit `frontend/.env.local`:
+
+   **Development:**
+   ```env
+   VITE_API_BASE_URL=/api
+   VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+   ```
+
+   **Production:**
+   ```env
+   VITE_API_BASE_URL=https://api.your-domain.com/api
+   VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+   ```
+
+**Important Notes:**
+- In development, use `/api` (relative path) - Vite proxy will forward to backend
+- In production, set full backend URL
+- All Vite env variables must be prefixed with `VITE_`
+
+## 🚀 Installation & Running
+
+### Quick Start (Recommended)
+
+Install all dependencies and run both servers with one command:
+
 ```bash
+# Install all dependencies (root, backend, frontend)
 npm run install:all
-```
 
-Or install manually:
-```bash
-# Install root dependencies (concurrently)
-npm install
-
-# Install backend dependencies
-cd backend
-npm install
-cd ..
-
-# Install frontend dependencies
-cd frontend
-npm install
-cd ..
-```
-
-### Configuration
-
-#### Backend Environment Variables
-
-Create `backend/.env` file:
-
-```env
-PORT=5000
-MONGO_URI=mongodb://localhost:27017/placedai
-JWT_SECRET=your-super-secret-jwt-key-change-in-production
-EMAIL_FROM=noreply@placedai.com
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
-
-TWILIO_ACCOUNT_SID=your-twilio-account-sid
-TWILIO_AUTH_TOKEN=your-twilio-auth-token
-TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
-
-AI_API_BASE_URL=https://api.openai.com/v1
-AI_API_KEY=your-openai-api-key
-
-STRIPE_SECRET_KEY=sk_test_your-stripe-secret-key
-STRIPE_WEBHOOK_SECRET=whsec_your-webhook-secret
-FRONTEND_URL=http://localhost:5173
-```
-
-**Note**: All services (email, WhatsApp, AI, payments) work in mock mode if credentials are not provided.
-
-#### Frontend Environment Variables
-
-Create `frontend/.env.local` file:
-
-**Development:**
-```env
-VITE_API_BASE_URL=/api
-```
-
-**Production:**
-```env
-VITE_API_BASE_URL=https://<BACKEND_DOMAIN>/api
-```
-
-The frontend uses relative paths (`/api`) which are proxied to the backend via Vite in development. In production, set `VITE_API_BASE_URL` to your production API URL.
-
-### Running the Application
-
-#### Single Command (Recommended)
-
-Run both frontend and backend together from the root:
-
-```bash
+# Run both backend and frontend together
 npm run dev
 ```
 
-This will start:
+This starts:
 - **Backend** on `http://localhost:5000`
 - **Frontend** on `http://localhost:5173`
 
-#### Individual Commands
+### Manual Installation
 
-If you prefer to run them separately:
-
-**Backend only:**
+**Backend:**
 ```bash
 cd backend
-npm run dev
+npm install
+npm run dev  # Development with nodemon
+# OR
+npm start    # Production
 ```
 
-**Frontend only:**
+**Frontend:**
 ```bash
 cd frontend
-npm run dev
+npm install
+npm run dev    # Development server
+# OR
+npm run build  # Production build
+npm run preview # Preview production build
 ```
 
 ### Database Seeding
@@ -168,100 +367,86 @@ cd backend
 npm run seed
 ```
 
-This creates:
-- Sample jobs
+This creates sample jobs and other test data.
 
-## Project Structure
+## 🌐 API Configuration
 
-```
-PlacedAI/
-├── package.json          # Root package.json with unified dev scripts
-├── README.md
-│
-├── backend/
-│   ├── models/          # Mongoose models
-│   ├── routes/          # Express routes (all under /api prefix)
-│   ├── services/        # Business logic (email, WhatsApp, AI, payments)
-│   ├── middleware/      # Auth middleware
-│   ├── utils/           # Utilities (resume parser)
-│   ├── scripts/         # Seed scripts
-│   ├── uploads/         # Uploaded files
-│   ├── .env             # Backend environment variables
-│   ├── package.json
-│   └── server.js        # Entry point
-│
-└── frontend/
-    ├── src/
-    │   ├── components/  # Reusable components
-    │   ├── pages/        # Page components
-    │   ├── routes/       # Route definitions
-    │   ├── services/     # API services (uses /api relative paths)
-    │   ├── store/        # State management
-    │   └── utils/        # Utilities
-    ├── public/
-    ├── .env.local        # Frontend environment variables (optional)
-    ├── vite.config.js    # Vite config with proxy to backend
-    └── package.json
-```
+### Development
 
-## Development Workflow
+- Frontend uses **relative paths** (`/api/*`) which are proxied by Vite
+- Vite proxy configuration in `frontend/vite.config.js`:
+  ```js
+  server: {
+    proxy: {
+      '/api': 'http://localhost:5000'
+    }
+  }
+  ```
+- No CORS issues since requests go through same origin
 
-### Unified Development
+### Production
 
-The project uses `concurrently` to run both servers together:
+- Set `VITE_API_BASE_URL` to your production API URL
+- Configure CORS on backend to allow your frontend domain
+- Example: `VITE_API_BASE_URL=https://api.yourapp.com/api`
 
-- **Root command**: `npm run dev` - Runs both frontend and backend
-- **Proxy configuration**: Frontend requests to `/api/*` are automatically proxied to `http://localhost:5000/api/*`
-- **No CORS issues**: All requests go through the same origin in development
-
-### API Configuration
-
-- **Development**: Frontend uses relative paths (`/api/*`) which are proxied by Vite
-- **Production**: Set `VITE_API_BASE_URL` to your production API URL
-
-### Backend Routes
+## 📡 API Endpoints
 
 All backend routes are prefixed with `/api`:
 
-- `/api/auth/*` - Authentication
-- `/api/user/*` - User management
-- `/api/jobs/*` - Job management
-- `/api/interview/*` - Interview management
-- `/api/optins/*` - Opt-in requests
-- `/api/recruiter/*` - Recruiter operations
-- `/api/billing/*` - Billing and payments
-- `/api/admin/*` - Admin operations
-
-## API Endpoints
-
-### Auth
+### Authentication (`/api/auth`)
 - `POST /api/auth/send-otp` - Send OTP to email
 - `POST /api/auth/verify-otp` - Verify OTP and get JWT
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Login with email/password
+- `POST /api/auth/google` - Google OAuth authentication
+- `POST /api/auth/admin/login` - Admin login
 - `POST /api/auth/recruiter/register` - Register recruiter
 - `POST /api/auth/recruiter/login` - Login recruiter
 
-### User
-- `GET /api/user/me` - Get current user
+### User Management (`/api/user`)
+- `GET /api/user/me` - Get current user profile
+- `GET /api/user/profile` - Get detailed profile
+- `PATCH /api/user/profile` - Update profile
 - `PUT /api/user/basic` - Update basic info (phone, resume, etc.)
 - `PUT /api/user/role-skills` - Update selected role and skills
+- `POST /api/user/resume` - Upload resume
 
-### Jobs
-- `GET /api/jobs/recommend` - Get recommended jobs
+### Jobs (`/api/jobs`)
+- `GET /api/jobs/recommend` - Get personalized job recommendations
 - `GET /api/jobs/:id` - Get job details
 - `POST /api/jobs` - Create job (recruiter/admin)
+- `POST /api/jobs/apply` - Apply to job
+- `GET /api/jobs/applications` - Get user's applications
 
-### Interviews
-- `POST /api/interview/start` - Start interview
-- `POST /api/interview/upload-recording` - Upload recording
+### Interviews (`/api/interview`)
+- `POST /api/interview/start` - Start new interview
+- `POST /api/interview/begin` - Begin interview session
+- `POST /api/interview/save-answer` - Save answer to question
+- `POST /api/interview/next-question` - Get next question
 - `POST /api/interview/finish` - Finish interview and get AI scores
+- `POST /api/interview/evaluate` - Evaluate completed interview
+- `POST /api/interview/upload-recording` - Upload interview recording
 - `GET /api/interview/my` - Get user's interviews
 - `GET /api/interview/:id` - Get interview details
 
-### Opt-Ins
-- `GET /api/optins/requests` - Get opt-in requests (candidate)
-- `POST /api/optins/submit` - Submit opt-in response
+### Resume & ATS (`/api/resume`)
+- `POST /api/resume/analyze` - Analyze resume and extract data
+- `POST /api/resume/ats-score` - Get ATS compatibility score
 
-### Recruiter
+### Admin (`/api/admin`)
+- `POST /api/admin/create` - Create new admin (admin only)
+- `POST /api/admin/reset-password` - Reset admin password
+- `GET /api/admin/users` - Get all users
+- `GET /api/admin/recruiters` - Get all recruiters
+- `GET /api/admin/interviews` - Get all interviews
+- `GET /api/admin/payments` - Get all payments
+- `GET /api/admin/stats` - Get dashboard statistics
+- `PATCH /api/admin/users/:id/block` - Block/unblock user
+- `PATCH /api/admin/users/:id/premium` - Update premium status
+- `PATCH /api/admin/users/:id/plan` - Update user plan
+
+### Recruiter (`/api/recruiter`)
 - `GET /api/recruiter/profile` - Get recruiter profile
 - `GET /api/recruiter/jobs` - Get recruiter's jobs
 - `POST /api/recruiter/jobs` - Create job
@@ -269,148 +454,208 @@ All backend routes are prefixed with `/api`:
 - `POST /api/recruiter/optins/request` - Send opt-in request
 - `GET /api/recruiter/optins` - Get opt-in activity
 
-### Billing
+### Billing (`/api/billing`)
 - `GET /api/billing/plans` - Get available plans
 - `POST /api/billing/create-checkout-session` - Create Stripe checkout
 - `POST /api/billing/webhook` - Stripe webhook handler
 - `GET /api/billing/history` - Get billing history
 
-### Admin
-- `GET /api/admin/users` - Get all users
-- `GET /api/admin/recruiters` - Get all recruiters
-- `PATCH /api/admin/recruiters/:id/status` - Update recruiter status
-- `GET /api/admin/interviews` - Get all interviews
-- `GET /api/admin/payments` - Get all payments
-- `GET /api/admin/stats` - Get dashboard stats
+### Health Check
+- `GET /api/health` - Health check endpoint
 
-## Stripe Webhook Setup
+## 🚢 Deployment Guide
 
-For local development, use Stripe CLI:
+### Backend Deployment
 
-1. Install Stripe CLI: https://stripe.com/docs/stripe-cli
+1. **Set Environment Variables:**
+   - Set all required environment variables in your hosting platform
+   - Use production values for `MONGO_URI`, `JWT_SECRET`, etc.
+   - Configure `FRONTEND_URL` to your production frontend URL
 
-2. Login:
-```bash
-stripe login
-```
-
-3. Forward webhooks to local server:
-```bash
-stripe listen --forward-to localhost:5000/api/billing/webhook
-```
-
-4. Copy the webhook signing secret and add it to `backend/.env` as `STRIPE_WEBHOOK_SECRET`
-
-## Production Build
-
-### Build Frontend
-
-```bash
-npm run build
-```
-
-This builds the frontend to `frontend/dist/`.
-
-### Production Environment Variables
-
-- **Backend**: Set all required environment variables in production
-- **Frontend**: Set `VITE_API_BASE_URL` to your production API URL (e.g., `https://api.yourapp.com/api`)
-
-## Authentication Flow
-
-PlacedAI uses **email-only authentication** with OTP verification:
-
-1. User enters email on login/signup screen
-2. System sends 6-digit OTP to email
-3. User verifies OTP
-4. On success, JWT token is created and user is redirected
-
-**Health Check**: The auth screen performs a health check on mount by calling `/api/health`. The "Backend server is not reachable" message only appears if the health check fails (network/server error). Validation errors and other API errors show their actual error messages.
-
-## Troubleshooting
-
-### Backend Connection Issues
-
-**Problem**: "Backend server is not reachable" appears even when backend is running.
-
-**Solutions**:
-1. Ensure backend is running on port 5000: `cd backend && npm run dev`
-2. Check that `frontend/vite.config.js` has the proxy configured:
-   ```js
-   proxy: {
-     '/api': 'http://localhost:5000'
-   }
+2. **Build & Start:**
+   ```bash
+   cd backend
+   npm install --production
+   npm start
    ```
-3. Verify `frontend/.env.local` has `VITE_API_BASE_URL=/api` (or is not set, defaults to `/api`)
-4. Check browser console for network errors
-5. Ensure no firewall is blocking localhost:5000
 
-### Auth Not Working
+3. **Recommended Hosting:**
+   - **Railway**: Easy deployment with automatic environment variables
+   - **Render**: Free tier available, automatic deploys from Git
+   - **Heroku**: Traditional PaaS (paid plans available)
+   - **DigitalOcean App Platform**: Simple deployments
+   - **AWS Elastic Beanstalk**: Enterprise-grade hosting
 
-**Problem**: Login/Signup shows errors.
+4. **Process Manager (Optional):**
+   ```bash
+   # Install PM2
+   npm install -g pm2
 
-**Solutions**:
-1. Check backend logs for errors
-2. Verify MongoDB is running and connected
-3. Check email service configuration (or use mock mode in development)
-4. In development, OTP is shown in console/alert if email service is not configured
-5. Verify JWT_SECRET is set in backend/.env
+   # Start with PM2
+   pm2 start server.js --name placedai-backend
 
-### API Calls Failing
+   # Auto-restart on server reboot
+   pm2 startup
+   pm2 save
+   ```
 
-**Problem**: API requests return errors.
+### Frontend Deployment
 
-**Solutions**:
-1. All API calls must use the `api` client from `frontend/src/services/api.js`
-2. Never use hardcoded URLs like `http://localhost:5000`
-3. In development, use relative paths (`/api/*`) which are proxied
-4. In production, set `VITE_API_BASE_URL` environment variable
+1. **Build Production Bundle:**
+   ```bash
+   cd frontend
+   npm install
+   npm run build
+   ```
 
-## Development Notes
+2. **Set Environment Variables:**
+   - Set `VITE_API_BASE_URL` to your production backend URL
+   - Build must happen with correct env variables
 
-- All services (email, WhatsApp, AI, payments) are abstracted and can work without credentials (mock mode)
-- Resume parsing supports PDF, DOC, DOCX formats
-- Interview recordings are stored locally (can be moved to S3/cloud storage)
-- AI scoring uses OpenAI-compatible API (can be swapped for other providers)
-- Frontend uses Vite proxy in development to avoid CORS issues
-- All API calls use relative paths (`/api/*`) which work in both dev and production
-- Health check endpoint: `GET /api/health` returns `{ status: "ok" }`
+3. **Deploy `dist/` folder:**
+   - **Vercel**: Connect GitHub repo, auto-deploys on push
+   - **Netlify**: Drag & drop `dist/` folder or connect repo
+   - **Cloudflare Pages**: Fast CDN, free tier
+   - **AWS S3 + CloudFront**: Static hosting with CDN
+   - **GitHub Pages**: Free hosting for static sites
 
-## Project Structure
+4. **Configure Routing:**
+   - For SPAs, configure redirect rules:
+     - **Vercel**: Create `vercel.json` with rewrites
+     - **Netlify**: Create `netlify.toml` with redirects
+     - **Nginx**: Configure try_files directive
 
-```
-PlacedAI/
-├── README.md              # This file - comprehensive project documentation
-├── package.json           # Root package.json with unified dev scripts
-│
-├── backend/
-│   ├── README.md         # Backend-specific documentation
-│   ├── models/           # Mongoose models
-│   ├── routes/           # Express routes (all under /api prefix)
-│   ├── services/         # Business logic (email, WhatsApp, AI, payments)
-│   ├── middleware/       # Auth middleware
-│   ├── utils/            # Utilities (resume parser)
-│   ├── scripts/          # Seed scripts
-│   ├── uploads/          # Uploaded files
-│   ├── .env              # Backend environment variables
-│   ├── package.json
-│   └── server.js         # Entry point
-│
-└── frontend/
-    ├── README.md         # Frontend-specific documentation
-    ├── src/
-    │   ├── components/   # Reusable components
-    │   ├── pages/        # Page components
-    │   ├── routes/       # Route definitions
-    │   ├── services/     # API services (uses /api relative paths)
-    │   ├── store/        # State management (Zustand)
-    │   └── utils/        # Utilities
-    ├── public/
-    ├── .env.local        # Frontend environment variables
-    ├── vite.config.js    # Vite config with proxy to backend
-    └── package.json
+### MongoDB Atlas Setup
+
+1. Create account at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+2. Create a new cluster (free tier available)
+3. Create database user
+4. Whitelist your IP address (or use `0.0.0.0/0` for all IPs)
+5. Get connection string: `mongodb+srv://username:password@cluster.mongodb.net/placedai`
+6. Set `MONGO_URI` in backend environment variables
+
+### CORS Configuration
+
+Backend CORS is configured in `backend/server.js`:
+
+```js
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true
+}));
 ```
 
-## License
+Ensure `FRONTEND_URL` matches your production frontend domain.
+
+### Stripe Webhook Setup
+
+1. **Create Webhook Endpoint in Stripe Dashboard:**
+   - URL: `https://your-backend.com/api/billing/webhook`
+   - Events: `checkout.session.completed`
+
+2. **Get Webhook Secret:**
+   - Copy signing secret from Stripe Dashboard
+   - Set as `STRIPE_WEBHOOK_SECRET` in backend env
+
+3. **Local Testing (Optional):**
+   ```bash
+   # Install Stripe CLI
+   stripe listen --forward-to localhost:5000/api/billing/webhook
+   ```
+
+## 🛠️ Development Workflow
+
+### Running in Development
+
+```bash
+# From root directory
+npm run dev
+```
+
+This runs:
+- Backend with nodemon (auto-restart on file changes)
+- Frontend with Vite (hot module replacement)
+
+### Project Scripts
+
+**Root:**
+- `npm run dev` - Run both backend and frontend
+- `npm run install:all` - Install dependencies for all packages
+- `npm run build` - Build frontend for production
+- `npm run seed` - Seed database with sample data
+
+**Backend:**
+- `npm run dev` - Development with nodemon
+- `npm start` - Production mode
+- `npm run seed` - Seed database
+
+**Frontend:**
+- `npm run dev` - Development server
+- `npm run build` - Production build
+- `npm run preview` - Preview production build
+
+## 🔒 Security Notes
+
+- **JWT Tokens**: 7-day expiration, stored in localStorage
+- **Password Hashing**: Bcrypt with salt rounds
+- **API Validation**: Express-validator for all inputs
+- **CORS**: Configured for specific origins
+- **Environment Variables**: Never committed to Git
+- **File Uploads**: Validated file types and sizes
+- **Rate Limiting**: Idempotency keys for duplicate request prevention
+- **Role-Based Access**: Admin routes protected with middleware
+
+## 📝 Important Notes
+
+- **Mock Mode**: All services (email, WhatsApp, AI, payments) work without credentials in development
+- **Health Check**: Frontend checks `/api/health` on auth screen mount
+- **Relative Paths**: Frontend uses `/api/*` which works in both dev and production
+- **File Storage**: Uploads stored locally (can be moved to S3/cloud storage)
+- **AI Provider**: OpenAI-compatible API (can swap for other providers)
+- **Database**: MongoDB with Mongoose ODM
+
+## 🐛 Troubleshooting
+
+### Backend Won't Start
+
+- Check MongoDB connection: Ensure MongoDB is running or `MONGO_URI` is correct
+- Verify `JWT_SECRET` is set
+- Check port 5000 is available
+
+### Frontend Can't Connect to Backend
+
+- Ensure backend is running on port 5000
+- Check `VITE_API_BASE_URL` is set to `/api` in development
+- Verify Vite proxy is configured in `vite.config.js`
+- Check browser console for CORS errors
+
+### OTP Not Received
+
+- Check email service configuration (or check console for mock OTP)
+- Verify SMTP credentials are correct
+- Check spam folder
+
+### Build Errors
+
+- Clear `node_modules` and reinstall: `rm -rf node_modules && npm install`
+- Clear Vite cache: `rm -rf frontend/node_modules/.vite`
+- Check Node.js version (requires v18+)
+
+## 📄 License
 
 MIT
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+## 📧 Support
+
+For issues and questions, please open an issue on GitHub.
+
+---
+
+**Built with ❤️ for Indian students preparing for placements**

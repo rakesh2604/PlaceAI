@@ -56,7 +56,7 @@ export default function InterviewIntro() {
           updateUser(response.data.user);
         }
       } catch (err) {
-        console.error('Failed to fetch user:', err);
+        // Silently handle error - user state will remain unchanged
       } finally {
         if (isMounted) {
           setChecking(false);
@@ -77,7 +77,7 @@ export default function InterviewIntro() {
     
     if (!jobId) {
       alert('Please select a role first. You will be redirected to browse jobs.');
-      navigate('/jobs');
+      navigate('/dashboard/jobs');
       return;
     }
 
@@ -86,7 +86,6 @@ export default function InterviewIntro() {
       const response = await interviewApi.start(jobId);
       navigate('/interview/live-new', { state: { interview: response.data.interview } });
     } catch (err) {
-      console.error('Failed to start interview:', err);
       const errorMsg = err.response?.data?.message || err.message || 'Failed to start interview. Please try again.';
       alert(errorMsg);
     } finally {

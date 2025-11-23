@@ -10,7 +10,9 @@ import {
   BarChart3,
   Shield,
   Briefcase,
-  TrendingUp
+  TrendingUp,
+  UserPlus,
+  KeyRound
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 
@@ -23,6 +25,11 @@ const menuItems = [
   { icon: MessageSquare, label: 'Interviews', path: '/admin/interviews' },
   { icon: BarChart3, label: 'Usage', path: '/admin/usage' },
   { icon: Shield, label: 'Support', path: '/admin/support' },
+];
+
+const settingsItems = [
+  { icon: UserPlus, label: 'Add Admin', path: '/admin/add-admin' },
+  { icon: KeyRound, label: 'Reset Password', path: '/admin/reset-password' },
   { icon: Settings, label: 'Settings', path: '/admin/settings' },
 ];
 
@@ -70,6 +77,36 @@ export default function AdminSidebar() {
             </Link>
           );
         })}
+
+        {/* Admin Settings Section */}
+        <div className="mt-6 pt-6 border-t border-[#003566]">
+          <div className="px-4 mb-2">
+            <span className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider">
+              Admin Settings
+            </span>
+          </div>
+          {settingsItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path;
+            
+            return (
+              <Link key={item.path} to={item.path}>
+                <motion.div
+                  whileHover={{ x: 4 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                    isActive
+                      ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                      : 'text-[#CBD5E1] hover:bg-[#003566] hover:text-[#F8F9FA]'
+                  }`}
+                >
+                  <Icon className="w-5 h-5 flex-shrink-0" />
+                  <span className="font-medium text-sm">{item.label}</span>
+                </motion.div>
+              </Link>
+            );
+          })}
+        </div>
       </nav>
 
       {/* Footer */}

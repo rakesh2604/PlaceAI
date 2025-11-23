@@ -16,6 +16,9 @@ export const adminApi = {
   updateTicketStatus: (id, status, adminNotes) => 
     api.patch(`/admin/support-tickets/${id}/status`, { status, adminNotes }),
   getUsage: () => api.get('/admin/usage'),
-  updateUserPlan: (id, planId) => api.patch(`/admin/users/${id}/plan`, { planId })
+  updateUserPlan: (id, planId) => api.patch(`/admin/users/${id}/plan`, { planId }),
+  createAdmin: (data) => api.post('/admin/create', data),
+  resetPassword: (oldPassword, newPassword) => 
+    api.post('/admin/reset-password', { oldPassword, newPassword })
 };
 

@@ -4,6 +4,7 @@ import { FileText, Sparkles, Download, Eye, Save, Plus, Trash2, ChevronRight, Up
 import { useAuthStore } from '../../store/authStore';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import ProfileCompletionModal from '../../components/ui/ProfileCompletionModal';
 import api from '../../services/api';
 import { userApi } from '../../services/candidateApi';
 import ImportTemplateModal from '../../components/resume/ImportTemplateModal';
@@ -51,6 +52,7 @@ export default function ResumeBuilder() {
   const [activeResumeId, setActiveResumeId] = useState(null);
   const [showImportTemplateModal, setShowImportTemplateModal] = useState(false);
   const [showImportLinkedInModal, setShowImportLinkedInModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [improving, setImproving] = useState(false);
 
   // Load saved resumes on mount
@@ -77,7 +79,7 @@ export default function ResumeBuilder() {
         }
       }
     } catch (error) {
-      console.error('Error loading resumes:', error);
+      // Silently handle error - empty state will be shown
     }
   };
 
@@ -111,6 +113,11 @@ export default function ResumeBuilder() {
 
   // Save resume
   const handleSave = async () => {
+    if (!user?.profileCompleted) {
+      setShowProfileModal(true);
+      return;
+    }
+
     setSaving(true);
     try {
       const payload = {
@@ -125,7 +132,6 @@ export default function ResumeBuilder() {
         setActiveResumeId(response.data.resume._id);
       }
     } catch (error) {
-      console.error('Error saving resume:', error);
       alert('Failed to save resume. Please try again.');
     } finally {
       setSaving(false);
@@ -134,6 +140,11 @@ export default function ResumeBuilder() {
 
   // Generate PDF
   const handleGeneratePDF = async () => {
+    if (!user?.profileCompleted) {
+      setShowProfileModal(true);
+      return;
+    }
+
     if (!activeResumeId) {
       await handleSave();
       return;
@@ -147,7 +158,6 @@ export default function ResumeBuilder() {
         window.open(response.data.pdfUrl, '_blank');
       }
     } catch (error) {
-      console.error('Error generating PDF:', error);
       alert('Failed to generate PDF. Please try again.');
     } finally {
       setLoading(false);
@@ -194,7 +204,6 @@ export default function ResumeBuilder() {
         alert('Resume improved with AI! Check the changes in your resume.');
       }
     } catch (error) {
-      console.error('Error improving resume:', error);
       alert('Failed to improve resume. Please try again.');
     } finally {
       setImproving(false);
@@ -659,6 +668,12 @@ export default function ResumeBuilder() {
         isOpen={showImportLinkedInModal}
         onClose={() => setShowImportLinkedInModal(false)}
         onSuccess={handleLinkedInImportSuccess}
+      />
+
+      <ProfileCompletionModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        requiredAction="resumeBuilder"
       />
     </div>
   );

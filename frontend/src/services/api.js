@@ -58,16 +58,7 @@ export const testConnection = async () => {
                           error.message?.includes('timeout');
     const isServerError = error.response?.status >= 500;
     
-    // Only log if it's actually a network/server error
-    if (isNetworkError || isServerError) {
-      console.error('Backend connection test failed:', {
-        message: error.message,
-        code: error.code,
-        response: error.response?.status,
-        baseURL: API_BASE_URL,
-        url: error.config?.url
-      });
-    }
+    // Error details captured in return object (no console logging in production)
     
     return { 
       connected: false, 
@@ -120,12 +111,7 @@ api.interceptors.response.use(
   async (error) => {
     // Handle network errors (no response from server)
     if (!error.response) {
-      console.error('Network Error:', {
-        message: error.message,
-        code: error.code,
-        baseURL: api.defaults.baseURL,
-        url: error.config?.url
-      });
+      // Network error details captured in userMessage (no console logging)
       
       // Provide helpful error message
       if (error.code === 'ECONNREFUSED' || error.message.includes('Network Error')) {
@@ -196,13 +182,13 @@ export const processQueuedRequestsOnReconnect = async () => {
     if (userId !== 'anonymous') {
       const results = await processQueuedRequests(userId, api);
       if (results.length > 0) {
-        console.log(`[API] Processed ${results.length} queued requests`);
+        // Queued requests processed (no console logging in production)
       }
       return results;
     }
     return [];
   } catch (error) {
-    console.error('[API] Error processing queued requests:', error);
+    // Error processing queued requests (handled silently)
     return [];
   }
 };
@@ -210,7 +196,7 @@ export const processQueuedRequestsOnReconnect = async () => {
 // Listen for online event to retry queued requests
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
-    console.log('[API] Network connection restored, processing queued requests...');
+    // Network connection restored, processing queued requests
     processQueuedRequestsOnReconnect();
   });
 }

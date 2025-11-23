@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Video, Calendar, TrendingUp, ArrowRight } from 'lucide-react';
 import { interviewApi } from '../../services/candidateApi';
+import { useAuthStore } from '../../store/authStore';
 import Badge from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
+import ProfileCompletionModal from '../../components/ui/ProfileCompletionModal';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -23,8 +25,11 @@ const itemVariants = {
 };
 
 export default function DashboardInterviews() {
+  const { user } = useAuthStore();
+  const navigate = useNavigate();
   const [interviews, setInterviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   useEffect(() => {
     loadInterviews();
@@ -35,7 +40,7 @@ export default function DashboardInterviews() {
       const response = await interviewApi.getMyInterviews();
       setInterviews(response.data.interviews || []);
     } catch (err) {
-      console.error('Failed to load interviews:', err);
+      // Silently handle error - empty state will be shown
     } finally {
       setLoading(false);
     }
@@ -83,11 +88,17 @@ export default function DashboardInterviews() {
               <p className="text-dark-600 dark:text-dark-400 mb-6 text-lg">
                 No interviews yet
               </p>
-              <Link to="/interview/intro">
-                <Button>
-                  Start Your First Interview
-                </Button>
-              </Link>
+              <Button
+                onClick={() => {
+                  if (!user?.profileCompleted) {
+                    setShowProfileModal(true);
+                  } else {
+                    navigate('/interview/intro');
+                  }
+                }}
+              >
+                Start Your First Interview
+              </Button>
             </Card>
           </motion.div>
         ) : (
@@ -162,6 +173,12 @@ export default function DashboardInterviews() {
           </motion.div>
         )}
       </div>
+
+      <ProfileCompletionModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        requiredAction="mockInterview"
+      />
     </div>
   );
 }

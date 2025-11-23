@@ -44,7 +44,6 @@ export default function InterviewLive() {
         videoRef.current.srcObject = stream;
       }
     } catch (err) {
-      console.error('Error accessing camera:', err);
       alert('Could not access camera/microphone. Please check permissions.');
     }
   };
@@ -114,7 +113,7 @@ export default function InterviewLive() {
       stopCamera();
       navigate(`/interview/result/${interview._id}`);
     } catch (err) {
-      console.error('Failed to finish interview:', err);
+      // Error handled via alert below
       
       // Check if it's a limit reached error
       if (err.response?.status === 429 && err.response?.data?.code === 'LIMIT_REACHED') {

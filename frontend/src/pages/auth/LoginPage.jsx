@@ -33,24 +33,20 @@ export default function LoginPage() {
       try {
         const result = await testConnection();
         if (result.connected) {
-          console.log('✓ Backend connection successful', result.data);
           setBackendError(''); // Clear any previous errors
           // Process any queued requests now that we're connected
           await processQueuedRequestsOnReconnect();
         } else {
           // Only show "backend not reachable" if health check actually failed (network/server error)
           if (result.isNetworkError) {
-            console.error('✗ Backend connection failed:', result.error, result.details);
             setBackendError('Backend server is not reachable. Please ensure it is running.');
           } else {
             // Health check returned 4xx or other non-network error - don't show backend error
-            console.warn('⚠ Health check returned non-network error:', result.error);
             setBackendError('');
           }
         }
       } catch (err) {
         // This catch should rarely trigger since testConnection handles errors internally
-        console.error('✗ Connection test error:', err);
         const isNetworkError = !err.response || 
                               err.code === 'ECONNREFUSED' || 
                               err.code === 'ETIMEDOUT' ||

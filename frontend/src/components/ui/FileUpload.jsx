@@ -10,21 +10,48 @@ export default function FileUpload({
   error,
   className = '',
   maxSize = 5 * 1024 * 1024, // 5MB default
+  showMetadata = false,
+  fileMetadata = null,
 }) {
   const [isDragging, setIsDragging] = useState(false);
   const [fileName, setFileName] = useState('');
   const [file, setFile] = useState(null);
+  const [fileSize, setFileSize] = useState(null);
   const fileInputRef = useRef(null);
 
   const handleFile = (selectedFile) => {
     if (selectedFile.size > maxSize) {
-      alert(`File size exceeds ${maxSize / 1024 / 1024}MB limit`);
+      alert(`File size exceeds ${(maxSize / 1024 / 1024).toFixed(0)}MB limit`);
       return;
     }
+    
+    // Validate file type
+    if (accept) {
+      const acceptedTypes = accept.split(',').map(t => t.trim());
+      const fileExt = '.' + selectedFile.name.split('.').pop().toLowerCase();
+      if (!acceptedTypes.includes(fileExt) && !acceptedTypes.includes(selectedFile.type)) {
+        alert(`File type not supported. Accepted: ${accept}`);
+        return;
+      }
+    }
+    
     setFile(selectedFile);
     setFileName(selectedFile.name);
+    setFileSize(selectedFile.size);
     onChange?.(selectedFile);
   };
+
+  // Format file size
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+  };
+
+  // Show metadata if provided (from backend)
+  const displayFileName = fileMetadata?.filename || fileName;
+  const displayFileSize = fileMetadata?.size || fileSize;
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -107,17 +134,24 @@ export default function FileUpload({
             )}
           </motion.div>
           <div className="text-center">
-            {fileName ? (
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-dark-900 dark:text-dark-100">
-                  {fileName}
-                </span>
-                <button
-                  onClick={handleRemove}
-                  className="p-1 hover:bg-dark-100 dark:hover:bg-dark-700 rounded-full transition-colors"
-                >
-                  <X className="w-4 h-4 text-red-500" />
-                </button>
+            {displayFileName ? (
+              <div className="flex flex-col items-center gap-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-dark-900 dark:text-dark-100">
+                    {displayFileName}
+                  </span>
+                  <button
+                    onClick={handleRemove}
+                    className="p-1 hover:bg-dark-100 dark:hover:bg-dark-700 rounded-full transition-colors"
+                  >
+                    <X className="w-4 h-4 text-red-500" />
+                  </button>
+                </div>
+                {displayFileSize && (
+                  <span className="text-xs text-dark-500 dark:text-dark-400">
+                    {formatFileSize(displayFileSize)}
+                  </span>
+                )}
               </div>
             ) : (
               <>
@@ -147,3 +181,4 @@ export default function FileUpload({
     </div>
   );
 }
+

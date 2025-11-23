@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { User, Globe, DollarSign, FileText, ArrowRight } from 'lucide-react';
 import { userApi } from '../../services/candidateApi';
+import PhoneInputIntl from '../../components/ui/PhoneInputIntl';
+import CurrencyInput from '../../components/ui/CurrencyInput';
 import { useAuthStore } from '../../store/authStore';
 import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
 import FileUpload from '../../components/ui/FileUpload';
 import Card from '../../components/ui/Card';
 
@@ -34,14 +35,41 @@ const itemVariants = {
 };
 
 export default function OnboardingDetails() {
+  const { updateUser } = useAuthStore();
   const [phone, setPhone] = useState('');
   const [selectedLanguages, setSelectedLanguages] = useState([]);
-  const [ctc, setCtc] = useState('');
+  const [compensationPaise, setCompensationPaise] = useState(0);
   const [resume, setResume] = useState(null);
+  const [resumeMetadata, setResumeMetadata] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [uploadingResume, setUploadingResume] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
-  const { updateUser } = useAuthStore();
+
+  // Load user profile on mount - always fetch fresh data from backend
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        setLoadingProfile(true);
+        const response = await userApi.getProfile();
+        if (response.data?.success && response.data?.user) {
+          const profileUser = response.data.user;
+          // Always use fresh backend data, not stale local state
+          setPhone(profileUser.phone || '');
+          setSelectedLanguages(profileUser.languages || []);
+          setCompensationPaise(profileUser.compensationPaise || 0);
+          setResumeMetadata(profileUser.resume || null);
+        }
+      } catch (err) {
+        setError('Failed to load profile. Please refresh the page.');
+      } finally {
+        setLoadingProfile(false);
+      }
+    };
+    loadProfile();
+  }, []);
 
   const handleLanguageToggle = (lang) => {
     setSelectedLanguages((prev) =>
@@ -51,28 +79,121 @@ export default function OnboardingDetails() {
     );
   };
 
+  const handleResumeUpload = async (file) => {
+    if (!file) {
+      setResume(null);
+      setResumeMetadata(null);
+      return;
+    }
+    
+    setUploadingResume(true);
+    setError('');
+    
+    try {
+      const response = await userApi.uploadResume(file);
+      if (response.data?.success && response.data?.resume) {
+        setResumeMetadata(response.data.resume);
+        setResume(file); // Keep file reference for form submission if needed
+        
+        // Update user in store if backend returns updated user
+        if (response.data?.user) {
+          updateUser(response.data.user);
+        }
+      } else {
+        throw new Error(response.data?.error || 'Failed to upload resume');
+      }
+    } catch (err) {
+      const errorMsg = err.response?.data?.error || err.response?.data?.message || 'Failed to upload resume';
+      setError(errorMsg);
+      setResume(null);
+      setResumeMetadata(null);
+    } finally {
+      setUploadingResume(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess(false);
     setLoading(true);
 
+    // Client-side validation
+    if (!phone) {
+      setError('Phone number is required');
+      setLoading(false);
+      return;
+    }
+    
+    if (selectedLanguages.length === 0) {
+      setError('Please select at least one language');
+      setLoading(false);
+      return;
+    }
+    
+    if (!resumeMetadata && !resume) {
+      setError('Resume upload is required');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const response = await userApi.updateBasic({
+      // Validate compensation is not negative (0 is allowed for freshers)
+      if (compensationPaise < 0) {
+        setError('Compensation cannot be negative');
+        setLoading(false);
+        return;
+      }
+
+      const updatePayload = {
         phone,
         languages: selectedLanguages,
-        ctc: ctc ? parseFloat(ctc) : undefined,
-        resume
-      });
-      if (response.data.user) {
-        updateUser(response.data.user);
+        compensationPaise: compensationPaise !== null && compensationPaise !== undefined ? compensationPaise : undefined
+      };
+      
+      // Include resumeId if resume was already uploaded
+      if (resumeMetadata?.id) {
+        updatePayload.resumeId = resumeMetadata.id;
       }
-      navigate('/jobs');
+      
+      const response = await userApi.updateProfile(updatePayload);
+      
+      if (response.data?.success && response.data?.user) {
+        // Update user store with complete user object from backend
+        updateUser(response.data.user);
+        setSuccess(true);
+        
+        // Clear form errors
+        setError('');
+        
+        // Navigate to dashboard after brief delay to show success message
+        setTimeout(() => {
+          navigate('/dashboard', { replace: true });
+        }, 1500);
+      } else {
+        setError(response.data?.error || 'Failed to update profile. Please try again.');
+      }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update profile');
+      const errorMsg = err.response?.data?.error || 
+                      err.response?.data?.message || 
+                      'Failed to update profile';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
   };
+
+  if (loadingProfile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-primary-100 dark:from-dark-900 dark:via-dark-800 dark:to-dark-900">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+          className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-100 dark:from-dark-900 dark:via-dark-800 dark:to-dark-900 py-12 px-4">
@@ -92,7 +213,7 @@ export default function OnboardingDetails() {
             <span className="gradient-text">Profile</span>
           </motion.h1>
           <p className="text-dark-600 dark:text-dark-400 text-lg">
-            Help us understand your background and preferences
+            Add your phone number, languages, compensation, and upload your resume to get started
           </p>
         </motion.div>
 
@@ -103,13 +224,13 @@ export default function OnboardingDetails() {
                 <User className="w-5 h-5" />
                 <label className="text-sm font-semibold">Contact Information</label>
               </div>
-              <Input
+              <PhoneInputIntl
                 label="Phone Number"
-                type="tel"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+1234567890"
+                onChange={setPhone}
+                error={error && !phone ? 'Phone number is required' : undefined}
                 required
+                defaultCountry="IN"
               />
             </motion.div>
 
@@ -149,12 +270,11 @@ export default function OnboardingDetails() {
                 <DollarSign className="w-5 h-5" />
                 <label className="text-sm font-semibold">Compensation</label>
               </div>
-              <Input
-                label="Current CTC (Annual Salary)"
-                type="number"
-                value={ctc}
-                onChange={(e) => setCtc(e.target.value)}
-                placeholder="120000"
+              <CurrencyInput
+                label="Current CTC (Annual, INR)"
+                value={compensationPaise}
+                onChange={setCompensationPaise}
+                currency="INR"
               />
             </motion.div>
 
@@ -166,9 +286,16 @@ export default function OnboardingDetails() {
               <FileUpload
                 label="Upload Resume (PDF, DOC, DOCX)"
                 accept=".pdf,.doc,.docx"
-                onChange={setResume}
-                error={error}
+                onChange={handleResumeUpload}
+                showMetadata={true}
+                fileMetadata={resumeMetadata}
+                maxSize={5 * 1024 * 1024}
               />
+              {uploadingResume && (
+                <p className="text-sm text-dark-500 dark:text-dark-400">
+                  Uploading resume...
+                </p>
+              )}
             </motion.div>
 
             {error && (
@@ -181,14 +308,26 @@ export default function OnboardingDetails() {
               </motion.p>
             )}
 
+            {success && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg"
+              >
+                <p className="text-sm text-green-600 dark:text-green-400">
+                  Profile updated successfully! Redirecting...
+                </p>
+              </motion.div>
+            )}
+
             <motion.div variants={itemVariants}>
               <Button
                 type="submit"
                 className="w-full group"
-                disabled={loading || !phone || selectedLanguages.length === 0 || !resume}
-                loading={loading}
+                disabled={loading || uploadingResume || !phone || selectedLanguages.length === 0 || (!resumeMetadata && !resume)}
+                loading={loading || uploadingResume}
               >
-                Continue
+                {loading || uploadingResume ? 'Saving...' : 'Save & Continue'}
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
             </motion.div>

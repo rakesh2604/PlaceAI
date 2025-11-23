@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   FileText, TrendingUp, AlertCircle, CheckCircle2, Sparkles, Loader2, 
-  Upload, Download, Lightbulb, XCircle, Target, Award, MessageSquare 
+  Upload, Download, Lightbulb, XCircle, Target, Award, MessageSquare, ChevronRight 
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import Button from '../../components/ui/Button';
@@ -10,6 +10,8 @@ import Input from '../../components/ui/Input';
 import FileUpload from '../../components/ui/FileUpload';
 import AnimatedCard from '../../components/ui/AnimatedCard';
 import LimitReachedModal from '../../components/LimitReachedModal';
+import ProfileCompletionModal from '../../components/ui/ProfileCompletionModal';
+import PlacedAIVideo from '../../components/PlacedAIVideo';
 import api from '../../services/api';
 
 const CircularGauge = ({ score, size = 140 }) => {
@@ -64,6 +66,7 @@ export default function ResumeLab() {
   const [error, setError] = useState(null);
   const [limitModal, setLimitModal] = useState({ open: false, feature: '', limit: 0, used: 0 });
   const [pastReports, setPastReports] = useState([]);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   // Load past reports
   useEffect(() => {
@@ -77,13 +80,18 @@ export default function ResumeLab() {
         setPastReports(response.data.reports);
       }
     } catch (error) {
-      console.error('Error loading past reports:', error);
+      // Silently handle error - past reports are optional
     }
   };
 
   const handleAnalyze = async () => {
     if (!resumeFile && !user?.resumeUrl) {
-      setError('Please upload a resume PDF or ensure your resume is uploaded.');
+      setError('Please upload a resume PDF first.');
+      return;
+    }
+    
+    if (!user?.profileCompleted) {
+      setShowProfileModal(true);
       return;
     }
 
@@ -110,8 +118,6 @@ export default function ResumeLab() {
         setError('Failed to analyze resume. Please try again.');
       }
     } catch (err) {
-      console.error('Error analyzing resume:', err);
-      
       if (err.response?.status === 429 && err.response?.data?.code === 'LIMIT_REACHED') {
         const limitData = err.response.data;
         setLimitModal({
@@ -130,7 +136,7 @@ export default function ResumeLab() {
 
   const handleImproveWithAI = () => {
     // Navigate to resume builder with suggestions
-    window.location.href = '/resume-builder';
+    window.location.href = '/dashboard/resume-builder';
   };
 
   return (
@@ -155,6 +161,15 @@ export default function ResumeLab() {
               </p>
             </div>
           </div>
+        </motion.div>
+
+        {/* Video Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <PlacedAIVideo />
         </motion.div>
 
         {/* Past Reports */}
@@ -204,7 +219,14 @@ export default function ResumeLab() {
                 <FileUpload
                   label="Choose PDF File"
                   accept=".pdf"
-                  onChange={setResumeFile}
+                  onChange={(file) => {
+                    if (file) {
+                      setResumeFile(file);
+                      setError(null);
+                    } else {
+                      setResumeFile(null);
+                    }
+                  }}
                   error={error}
                 />
                 {resumeFile && (
@@ -556,6 +578,12 @@ export default function ResumeLab() {
         feature={limitModal.feature}
         limit={limitModal.limit}
         used={limitModal.used}
+      />
+
+      <ProfileCompletionModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        requiredAction="resumeLab"
       />
     </div>
   );

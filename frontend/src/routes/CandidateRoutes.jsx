@@ -3,11 +3,11 @@ import { AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import NavbarCandidate from '../components/layout/NavbarCandidate';
+import DashboardLayout from '../components/layout/DashboardLayout';
 import PageTransition from '../components/layout/PageTransition';
 import Landing from '../pages/Landing';
 import LoginPage from '../pages/auth/LoginPage';
 import SignupPage from '../pages/auth/SignupPage';
-import OnboardingOtp from '../pages/candidate/OnboardingOtp';
 import OnboardingDetails from '../pages/candidate/OnboardingDetails';
 import JobRecommendations from '../pages/candidate/JobRecommendations';
 import SelectRoleSkills from '../pages/candidate/SelectRoleSkills';
@@ -20,6 +20,8 @@ import DashboardInterviews from '../pages/candidate/DashboardInterviews';
 import DashboardOptIns from '../pages/candidate/DashboardOptIns';
 import ResumeLab from '../pages/candidate/ResumeLab';
 import ResumeBuilder from '../pages/candidate/ResumeBuilder';
+import Applications from '../pages/candidate/Applications';
+import Settings from '../pages/candidate/Settings';
 import Pricing from '../pages/Pricing';
 import PricingSuccess from '../pages/PricingSuccess';
 import PricingFailed from '../pages/PricingFailed';
@@ -33,7 +35,6 @@ import Cookies from '../pages/Cookies';
 import Careers from '../pages/Careers';
 import Blog from '../pages/Blog';
 import NotFound from '../pages/NotFound';
-import AllTest from '../pages/allTest';
 
 function CandidateRoutes() {
   const { user, token } = useAuthStore();
@@ -41,22 +42,26 @@ function CandidateRoutes() {
 
   const ProtectedRoute = ({ children }) => {
     if (!token || !user) {
-      return <Navigate to="/" replace />;
+      return <Navigate to="/login" replace />;
     }
     return children;
   };
 
+  // ProfileCompleteRoute removed - using modal prompts instead
+  // Profile completion checks are handled in DashboardLayout and individual pages
+
   const showNavbar = 
     location.pathname !== '/' && 
-    location.pathname !== '/verify-otp' && 
     location.pathname !== '/login' &&
-    location.pathname !== '/signup';
+    location.pathname !== '/signup' &&
+    !location.pathname.startsWith('/dashboard');
 
   return (
     <div className="min-h-screen">
       {showNavbar && <NavbarCandidate />}
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
+          {/* Public Routes */}
           <Route
             path="/"
             element={
@@ -90,29 +95,101 @@ function CandidateRoutes() {
             }
           />
           <Route
-            path="/verify-otp"
+            path="/pricing"
             element={
               <PageTransition>
-                <OnboardingOtp />
+                <Pricing />
               </PageTransition>
             }
           />
+          <Route
+            path="/pricing/success"
+            element={
+              <PageTransition>
+                <PricingSuccess />
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/pricing/failed"
+            element={
+              <PageTransition>
+                <PricingFailed />
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/about"
+            element={
+              <PageTransition>
+                <About />
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/contact"
+            element={
+              <PageTransition>
+                <Contact />
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/terms"
+            element={
+              <PageTransition>
+                <Terms />
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/privacy"
+            element={
+              <PageTransition>
+                <Privacy />
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/refund"
+            element={
+              <PageTransition>
+                <Refund />
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/cookies"
+            element={
+              <PageTransition>
+                <Cookies />
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/careers"
+            element={
+              <PageTransition>
+                <Careers />
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/blog"
+            element={
+              <PageTransition>
+                <Blog />
+              </PageTransition>
+            }
+          />
+
+          {/* Protected Routes Without Dashboard Layout */}
           <Route
             path="/onboarding"
             element={
               <ProtectedRoute>
                 <PageTransition>
                   <OnboardingDetails />
-                </PageTransition>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/jobs"
-            element={
-              <ProtectedRoute>
-                <PageTransition>
-                  <JobRecommendations />
                 </PageTransition>
               </ProtectedRoute>
             }
@@ -168,96 +245,6 @@ function CandidateRoutes() {
             }
           />
           <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <PageTransition>
-                  <Dashboard />
-                </PageTransition>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/dashboard/interviews"
-            element={
-              <ProtectedRoute>
-                <PageTransition>
-                  <DashboardInterviews />
-                </PageTransition>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/dashboard/optins"
-            element={
-              <ProtectedRoute>
-                <PageTransition>
-                  <DashboardOptIns />
-                </PageTransition>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/resume-lab"
-            element={
-              <ProtectedRoute>
-                <PageTransition>
-                  <ResumeLab />
-                </PageTransition>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/resume-builder"
-            element={
-              <ProtectedRoute>
-                <PageTransition>
-                  <ResumeBuilder />
-                </PageTransition>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/pricing"
-            element={
-              <PageTransition>
-                <Pricing />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/pricing/success"
-            element={
-              <PageTransition>
-                <PricingSuccess />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/pricing/failed"
-            element={
-              <PageTransition>
-                <PricingFailed />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/about"
-            element={
-              <PageTransition>
-                <About />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/contact"
-            element={
-              <PageTransition>
-                <Contact />
-              </PageTransition>
-            }
-          />
-          <Route
             path="/usage"
             element={
               <ProtectedRoute>
@@ -267,62 +254,116 @@ function CandidateRoutes() {
               </ProtectedRoute>
             }
           />
+
+          {/* Dashboard Routes With Layout */}
           <Route
-            path="/terms"
+            path="/dashboard"
             element={
-              <PageTransition>
-                <Terms />
-              </PageTransition>
+              <ProtectedRoute>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route
+              index
+              element={
+                <PageTransition>
+                  <Dashboard />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="resume-lab"
+              element={
+                <PageTransition>
+                  <ResumeLab />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="resume-builder"
+              element={
+                <PageTransition>
+                  <ResumeBuilder />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="jobs"
+              element={
+                <PageTransition>
+                  <JobRecommendations />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="applications"
+              element={
+                <PageTransition>
+                  <Applications />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="mock-interviews"
+              element={
+                <PageTransition>
+                  <DashboardInterviews />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="settings"
+              element={
+                <PageTransition>
+                  <Settings />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="interviews"
+              element={
+                <PageTransition>
+                  <DashboardInterviews />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="optins"
+              element={
+                <PageTransition>
+                  <DashboardOptIns />
+                </PageTransition>
+              }
+            />
+          </Route>
+
+          {/* Legacy routes - redirect to dashboard */}
+          <Route
+            path="/resume-lab"
+            element={
+              <ProtectedRoute>
+                <Navigate to="/dashboard/resume-lab" replace />
+              </ProtectedRoute>
             }
           />
           <Route
-            path="/privacy"
+            path="/resume-builder"
             element={
-              <PageTransition>
-                <Privacy />
-              </PageTransition>
+              <ProtectedRoute>
+                <Navigate to="/dashboard/resume-builder" replace />
+              </ProtectedRoute>
             }
           />
           <Route
-            path="/refund"
+            path="/jobs"
             element={
-              <PageTransition>
-                <Refund />
-              </PageTransition>
+              <ProtectedRoute>
+                <Navigate to="/dashboard/jobs" replace />
+              </ProtectedRoute>
             }
           />
-          <Route
-            path="/cookies"
-            element={
-              <PageTransition>
-                <Cookies />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/careers"
-            element={
-              <PageTransition>
-                <Careers />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/blog"
-            element={
-              <PageTransition>
-                <Blog />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/allTest"
-            element={
-              <PageTransition>
-                <AllTest />
-              </PageTransition>
-            }
-          />
+
           <Route
             path="*"
             element={
@@ -338,4 +379,3 @@ function CandidateRoutes() {
 }
 
 export default CandidateRoutes;
-

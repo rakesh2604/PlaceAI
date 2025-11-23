@@ -25,43 +25,55 @@ const itemVariants = {
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
-  const [step, setStep] = useState('email');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const { setAuth } = useAuthStore();
 
-  const handleSendOTP = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
-
-    try {
-      await authApi.sendOTP(email);
-      setStep('otp');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to send OTP');
-    } finally {
-      setLoading(false);
+    
+    // Basic validation
+    if (!email.trim()) {
+      setError('Email is required');
+      return;
     }
-  };
-
-  const handleVerifyOTP = async (e) => {
-    e.preventDefault();
-    setError('');
+    if (!password) {
+      setError('Password is required');
+      return;
+    }
+    
     setLoading(true);
 
     try {
-      const response = await authApi.verifyOTP(email, otp, { isAdminLogin: true });
-      if (response.data.user.role === 'admin') {
-        setAuth(response.data.user, response.data.token);
-        navigate('/admin/dashboard');
+      const response = await authApi.adminLogin(email.trim(), password);
+      
+      // Check response status
+      if (response.status >= 200 && response.status < 300) {
+        if (response.data?.user?.role === 'admin') {
+          setAuth(response.data.user, response.data.token);
+          navigate('/admin/dashboard');
+          return;
+        } else {
+          setError(response.data?.message || 'Access denied. Admin only.');
+        }
       } else {
-        setError(response.data?.message || 'Access denied. Admin only.');
+        setError(response.data?.message || 'Invalid credentials');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid OTP');
+      // Handle validation errors from express-validator
+      if (err.response?.data?.errors && Array.isArray(err.response.data.errors)) {
+        const firstError = err.response.data.errors[0];
+        setError(firstError.msg || firstError.message || 'Validation failed');
+      } else {
+        const errorMessage = err.response?.data?.message || 
+                            err.userMessage || 
+                            err.message || 
+                            'Invalid credentials';
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -118,67 +130,46 @@ export default function AdminLogin() {
             </motion.h1>
           </motion.div>
 
-          {step === 'email' ? (
-            <motion.form
-              variants={itemVariants}
-              onSubmit={handleSendOTP}
-              className="space-y-6"
+          <motion.form
+            variants={itemVariants}
+            onSubmit={handleSubmit}
+            className="space-y-6"
+          >
+            <Input
+              label="Email"
+              type="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (error) setError('');
+              }}
+              placeholder="admin@example.com"
+              required
+            />
+
+            <Input
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (error) setError('');
+              }}
+              placeholder="Enter your password"
+              required
+              error={error}
+            />
+
+            <Button
+              type="submit"
+              className="w-full group"
+              disabled={loading}
+              loading={loading}
             >
-              <Input
-                label="Email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                error={error}
-              />
-              <Button
-                type="submit"
-                className="w-full group"
-                disabled={loading}
-                loading={loading}
-              >
-                {loading ? 'Sending...' : 'Send OTP'}
-                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </motion.form>
-          ) : (
-            <motion.form
-              variants={itemVariants}
-              onSubmit={handleVerifyOTP}
-              className="space-y-6"
-            >
-              <p className="text-sm text-dark-600 dark:text-dark-400 mb-4 text-center">
-                OTP sent to <strong>{email}</strong>
-              </p>
-              <Input
-                label="Enter OTP"
-                type="text"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                maxLength={6}
-                required
-                error={error}
-                className="text-center text-2xl tracking-widest"
-              />
-              <Button
-                type="submit"
-                className="w-full group"
-                disabled={loading || otp.length !== 6}
-                loading={loading}
-              >
-                {loading ? 'Verifying...' : 'Verify'}
-                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-              </Button>
-              <button
-                type="button"
-                onClick={() => setStep('email')}
-                className="text-sm text-primary-600 dark:text-primary-400 hover:underline w-full text-center"
-              >
-                Back
-              </button>
-            </motion.form>
-          )}
+              {loading ? 'Logging in...' : 'Login'}
+              <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </motion.form>
         </motion.div>
       </motion.div>
     </div>

@@ -30,16 +30,13 @@ const idempotencyKeySchema = new mongoose.Schema({
   expiresAt: {
     type: Date,
     required: true,
-    index: { expireAfterSeconds: 0 }
+    index: { expireAfterSeconds: 0 } // TTL index for automatic expiration
   },
   createdAt: {
     type: Date,
     default: Date.now
   }
 });
-
-// Cleanup expired keys periodically
-idempotencyKeySchema.index({ expiresAt: 1 });
 
 const IdempotencyKey = mongoose.model('IdempotencyKey', idempotencyKeySchema);
 

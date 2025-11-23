@@ -53,7 +53,9 @@ router.post('/ats-score',
         atsScore: atsResult
       });
     } catch (error) {
-      console.error('Error calculating ATS score:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error calculating ATS score:', error);
+      }
       res.status(500).json({ 
         success: false,
         message: 'Failed to calculate ATS score' 
@@ -99,7 +101,9 @@ router.post('/analyze',
         analysis
       });
     } catch (error) {
-      console.error('Error analyzing resume:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error analyzing resume:', error);
+      }
       res.status(500).json({ 
         success: false,
         message: 'Failed to analyze resume' 

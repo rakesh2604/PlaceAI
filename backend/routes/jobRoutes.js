@@ -41,7 +41,6 @@ router.get('/recommend', authenticate, async (req, res) => {
 
     res.json({ jobs: recommended });
   } catch (error) {
-    console.error('Error fetching recommended jobs:', error);
     res.status(500).json({ message: 'Failed to fetch jobs' });
   }
 });
@@ -52,7 +51,6 @@ router.get('/', authenticate, async (req, res) => {
     const jobs = await Job.find().sort({ createdAt: -1 });
     res.json({ jobs });
   } catch (error) {
-    console.error('Error fetching jobs:', error);
     res.status(500).json({ message: 'Failed to fetch jobs' });
   }
 });
@@ -85,7 +83,6 @@ router.post('/',
       await job.save();
       res.status(201).json({ job });
     } catch (error) {
-      console.error('Error creating job:', error);
       res.status(500).json({ message: 'Failed to create job' });
     }
   }
@@ -100,7 +97,6 @@ router.get('/:id', authenticate, async (req, res) => {
     }
     res.json({ job });
   } catch (error) {
-    console.error('Error fetching job:', error);
     res.status(500).json({ message: 'Failed to fetch job' });
   }
 });
@@ -152,11 +148,63 @@ router.post('/apply',
         application: job.applications[job.applications.length - 1]
       });
     } catch (error) {
-      console.error('Error applying to job:', error);
       res.status(500).json({ message: 'Failed to apply to job' });
     }
   }
 );
+
+// Get user's applications
+router.get('/applications', authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Find all jobs where user has applied
+    const jobs = await Job.find({
+      'applications.userId': user._id
+    }).sort({ 'applications.appliedAt': -1 });
+
+    // Map to application format with job details
+    const applications = jobs.flatMap(job => {
+      const userApp = job.applications.find(app => 
+        app.userId?.toString() === user._id.toString()
+      );
+      if (!userApp) return [];
+      
+      return {
+        _id: userApp._id || job._id.toString() + '-' + user._id.toString(),
+        jobId: job._id,
+        jobTitle: job.title,
+        company: job.company || 'Company',
+        location: job.location,
+        appliedAt: userApp.appliedAt,
+        status: userApp.status === 'shortlisted' ? 'accepted' : userApp.status || 'pending',
+        job: {
+          _id: job._id,
+          title: job.title,
+          description: job.description,
+          company: job.company,
+          location: job.location,
+          skillsRequired: job.skillsRequired,
+          level: job.level,
+          type: job.type
+        }
+      };
+    });
+
+    res.json({ 
+      success: true,
+      applications: applications.sort((a, b) => 
+        new Date(b.appliedAt) - new Date(a.appliedAt)
+      )
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to fetch applications' });
+  }
+});
 
 export default router;
 
