@@ -8,6 +8,13 @@ import { Server as SocketIOServer } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import User from './models/User.js';
 
+// Define __dirname for ESM compatibility (needed before dotenv.config)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load environment variables FIRST, before any routes or middleware
+dotenv.config({ path: path.resolve(__dirname, '.env') });
+
 // Import routes
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
@@ -23,12 +30,6 @@ import resumeBuilderRoutes from './routes/resumeBuilderRoutes.js';
 import atsRoutes from './routes/atsRoutes.js';
 import supportRoutes from './routes/supportRoutes.js';
 import judgeRoutes from './routes/judgeRoutes.js';
-
-// Load environment variables
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 
