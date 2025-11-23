@@ -169,9 +169,6 @@ npm run seed
 ```
 
 This creates:
-- Admin user: `admin@placedai.com` / `admin123`
-- Recruiter: `recruiter@test.com` / `recruiter123`
-- Candidate: `candidate@test.com` / `candidate123`
 - Sample jobs
 
 ## Project Structure
