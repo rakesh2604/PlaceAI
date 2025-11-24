@@ -148,7 +148,7 @@ export default function AdminSettings() {
             <div className="flex justify-between">
               <span className="text-dark-600 dark:text-dark-400">API Base URL:</span>
               <span className="font-medium text-dark-900 dark:text-dark-100">
-                {import.meta.env.VITE_API_BASE_URL || '/api'}
+                {import.meta.env.VITE_API_URL || '/api'}
               </span>
             </div>
           </div>

@@ -1,5 +1,6 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
 import { mkdir } from 'fs/promises';
 
 // Define __dirname for ESM compatibility (needed before dotenv.config)
@@ -7,8 +8,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Load environment variables FIRST, before any other imports
-import dotenv from 'dotenv';
-dotenv.config({ path: path.resolve(__dirname, '.env') });
+const require = createRequire(import.meta.url);
+require('dotenv').config();
 
 // ENV CHECK - Log environment variable status (only in development)
 if (process.env.NODE_ENV === 'development') {
@@ -23,6 +24,8 @@ if (process.env.NODE_ENV === 'development') {
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
+import helmet from 'helmet';
+import compression from 'compression';
 import { Server as SocketIOServer } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import User from './models/User.js';
@@ -46,12 +49,42 @@ import judgeRoutes from './routes/judgeRoutes.js';
 const app = express();
 
 // Middleware
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  credentials: true
-}));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// CORS Configuration - Environment-driven
+// For production: Set CORS_ORIGINS env var to comma-separated list of allowed origins
+// Example: CORS_ORIGINS=https://your-app.vercel.app,https://www.yourdomain.com
+// For development/staging: Set ALLOW_ALL_ORIGINS=true to allow all origins
+const corsOptions = {
+  credentials: true,
+  origin: (origin, callback) => {
+    // Allow all origins if ALLOW_ALL_ORIGINS is true (development/staging)
+    if (process.env.ALLOW_ALL_ORIGINS === 'true') {
+      return callback(null, true);
+    }
+    
+    // Production: Use explicit allow list from CORS_ORIGINS env var
+    const allowedOrigins = process.env.CORS_ORIGINS 
+      ? process.env.CORS_ORIGINS.split(',').map(o => o.trim())
+      : [];
+    
+    // If no origin (e.g., Postman, curl), allow it
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // Check if origin is in allowed list
+    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
+};
+
+app.use(cors(corsOptions));
+app.use(helmet());
+app.use(compression());
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // Ensure uploads directory exists and serve uploaded files
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -71,14 +104,13 @@ const uploadsDir = path.join(__dirname, 'uploads');
 // Serve uploaded files
 app.use('/uploads', express.static(uploadsDir));
 
-// Connect to MongoDB with improved error handling
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/placedai';
-
-if (!process.env.MONGO_URI && process.env.NODE_ENV === 'development') {
-  console.warn('⚠️  MONGO_URI not found in .env, using default: mongodb://localhost:27017/placedai');
+// Connect to MongoDB - require MONGO_URI from environment
+if (!process.env.MONGO_URI) {
+  console.error('❌ MONGO_URI is required but not set in environment variables');
+  process.exit(1);
 }
 
-mongoose.connect(MONGO_URI, {
+mongoose.connect(process.env.MONGO_URI, {
   serverSelectionTimeoutMS: 5000,
   socketTimeoutMS: 45000,
 })
@@ -90,14 +122,8 @@ mongoose.connect(MONGO_URI, {
   })
   .catch(err => {
     console.error('❌ MongoDB connection error:', err.message);
-    if (process.env.NODE_ENV === 'development') {
-      console.error('   Please check your MONGO_URI in .env file');
-      console.error('   Example: MONGO_URI=mongodb://localhost:27017/placedai');
-    }
-    // Don't exit in development - allow server to start for testing
-    if (process.env.NODE_ENV === 'production') {
-      process.exit(1);
-    }
+    console.error('   Please check your MONGO_URI in .env file');
+    process.exit(1);
   });
 
 // Handle MongoDB connection events
@@ -152,29 +178,8 @@ app.use('/api/ats', atsRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/judge', judgeRoutes);
 
-// Health check - always returns 200 so frontend can detect backend is running
-app.get('/api/health', (req, res) => {
-  const dbState = mongoose.connection.readyState;
-  const dbStatusMap = {
-    0: 'disconnected',
-    1: 'connected',
-    2: 'connecting',
-    3: 'disconnecting'
-  };
-  const dbStatus = dbStatusMap[dbState] || 'unknown';
-  const isConnected = dbState === 1;
-  
-  // Always return 200 status so frontend knows backend is reachable
-  // Database status is included in response for monitoring
-  res.status(200).json({
-    status: isConnected ? 'ok' : 'degraded',
-    timestamp: new Date().toISOString(),
-    database: dbStatus,
-    databaseState: dbState,
-    uptime: process.uptime(),
-    mongoUri: process.env.MONGO_URI ? 'configured' : 'missing'
-  });
-});
+// Health check route
+app.get('/health', (req, res) => res.send('OK'));
 
 // 404 handler for undefined routes
 app.use('/api/*', (req, res) => {
@@ -207,16 +212,21 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 4000;
 const server = app.listen(PORT, () => {
   if (process.env.NODE_ENV === 'development') {
     console.log(`Server running on port ${PORT}`);
   }
 });
 
+// Socket.IO CORS - Use same logic as Express CORS
+const socketCorsOrigin = process.env.ALLOW_ALL_ORIGINS === 'true' 
+  ? "*" 
+  : (process.env.CORS_ORIGINS || "").split(',').map(o => o.trim()).filter(Boolean);
+
 const io = new SocketIOServer(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: socketCorsOrigin.length > 0 ? socketCorsOrigin : "*",
     credentials: true
   }
 });

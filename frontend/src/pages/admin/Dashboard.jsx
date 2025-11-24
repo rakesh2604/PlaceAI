@@ -53,12 +53,14 @@ export default function AdminDashboard() {
 
   const loadData = async () => {
     try {
-      const [usersRes, recruitersRes, interviewsRes, paymentsRes, jobsRes] = await Promise.all([
+      const [usersRes, recruitersRes, interviewsRes, paymentsRes, jobsRes, statsRes, ticketsRes] = await Promise.all([
         adminApi.getUsers().catch(() => ({ data: { users: [] } })),
         adminApi.getRecruiters().catch(() => ({ data: { recruiters: [] } })),
         adminApi.getInterviews().catch(() => ({ data: { interviews: [] } })),
         api.get('/billing/history').catch(() => ({ data: { payments: [] } })),
-        api.get('/jobs').catch(() => ({ data: { jobs: [] } }))
+        api.get('/jobs').catch(() => ({ data: { jobs: [] } })),
+        adminApi.getStats().catch(() => ({ data: {} })),
+        adminApi.getSupportTickets().catch(() => ({ data: { tickets: [], total: 0 } }))
       ]);
 
       const usersData = usersRes.data?.users || [];
@@ -66,6 +68,9 @@ export default function AdminDashboard() {
       const interviewsData = interviewsRes.data?.interviews || [];
       const paymentsData = paymentsRes.data?.payments || [];
       const jobsData = jobsRes.data?.jobs || [];
+      const statsData = statsRes.data || {};
+      const ticketsData = ticketsRes.data?.tickets || [];
+      const ticketsTotal = ticketsRes.data?.total || ticketsData.length;
 
       setUsers(usersData);
       setRecruiters(recruitersData);
@@ -82,8 +87,8 @@ export default function AdminDashboard() {
         totalJobs: jobsData.length,
         totalInterviews: interviewsData.length,
         totalRevenue,
-        totalATSChecks: 0, // TODO: Fetch from ATS reports
-        totalTickets: 0 // TODO: Fetch from support tickets
+        totalATSChecks: statsData.totalATSReports || 0,
+        totalTickets: statsData.totalSupportTickets || ticketsTotal
       });
     } catch (err) {
       console.error('Failed to load data:', err);

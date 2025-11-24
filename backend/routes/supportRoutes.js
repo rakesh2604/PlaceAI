@@ -2,6 +2,7 @@ import express from 'express';
 import { body, validationResult } from 'express-validator';
 import { authenticate } from '../middleware/auth.js';
 import SupportTicket from '../models/SupportTicket.js';
+import { sendContactNotification } from '../services/emailService.js';
 
 const router = express.Router();
 
@@ -32,8 +33,14 @@ router.post('/contact',
 
       await ticket.save();
 
-      // TODO: Send email notification to admin
-      // await emailService.sendContactNotification({ name, email, subject, message });
+      // Send email notification to admin
+      await sendContactNotification({ 
+        name, 
+        email, 
+        subject, 
+        message, 
+        ticketId: ticket._id.toString() 
+      });
 
       res.json({
         success: true,

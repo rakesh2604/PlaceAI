@@ -13,6 +13,7 @@ import aiBrain from '../src/ai/aiBrain.js';
 import { checkUsage, incrementUsage } from '../middleware/usageCheck.js';
 import { idempotencyMiddleware } from '../middleware/idempotency.js';
 import fs from 'fs/promises';
+import puppeteer from 'puppeteer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -624,6 +625,194 @@ router.get('/evaluation-job/:jobId', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Error fetching evaluation job:', error);
     res.status(500).json({ message: 'Failed to fetch evaluation job' });
+  }
+});
+
+// Generate PDF report for interview
+router.get('/:id/pdf', authenticate, async (req, res) => {
+  try {
+    const interview = await Interview.findOne({
+      _id: req.params.id,
+      userId: req.user._id
+    })
+      .populate('jobId', 'title description')
+      .populate('userId', 'email name');
+
+    if (!interview) {
+      return res.status(404).json({ message: 'Interview not found' });
+    }
+
+    if (!interview.aiScores) {
+      return res.status(400).json({ message: 'Interview evaluation not completed yet' });
+    }
+
+    const scores = interview.aiScores;
+    const escapeHtml = (text) => String(text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: 'Arial', sans-serif; line-height: 1.6; color: #333; padding: 40px; }
+          .header { border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 30px; }
+          .title { font-size: 32px; font-weight: bold; color: #1e40af; margin-bottom: 10px; }
+          .subtitle { font-size: 16px; color: #666; }
+          .section { margin-bottom: 30px; }
+          .section-title { font-size: 20px; font-weight: bold; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 15px; }
+          .score-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px; }
+          .score-item { background: #f8f9fa; padding: 15px; border-radius: 8px; }
+          .score-label { font-weight: bold; color: #333; margin-bottom: 5px; }
+          .score-value { font-size: 24px; font-weight: bold; color: #2563eb; }
+          .overall-score { text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; }
+          .overall-score-value { font-size: 48px; font-weight: bold; margin-bottom: 10px; }
+          .list { list-style: none; }
+          .list-item { padding: 8px 0; border-bottom: 1px solid #e5e7eb; }
+          .transcript-item { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+          .question-text { font-weight: bold; color: #2563eb; margin-bottom: 8px; }
+          .answer-text { color: #555; }
+          .footer { margin-top: 40px; padding-top: 20px; border-top: 2px solid #e5e7eb; text-align: center; color: #666; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="title">Interview Results Report</div>
+          <div class="subtitle">
+            ${escapeHtml(interview.jobId?.title || 'Interview')} | 
+            ${escapeHtml(interview.userId?.name || interview.userId?.email || 'Candidate')} | 
+            ${new Date(interview.completedAt || interview.createdAt).toLocaleDateString()}
+          </div>
+        </div>
+
+        <div class="overall-score">
+          <div class="overall-score-value">${Math.round(scores.overall || 0)}/100</div>
+          <div>Overall Score</div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Score Breakdown</div>
+          <div class="score-grid">
+            <div class="score-item">
+              <div class="score-label">Communication</div>
+              <div class="score-value">${Math.round(scores.communication || 0)}/100</div>
+            </div>
+            <div class="score-item">
+              <div class="score-label">Confidence</div>
+              <div class="score-value">${Math.round(scores.confidence || 0)}/100</div>
+            </div>
+            <div class="score-item">
+              <div class="score-label">Technical</div>
+              <div class="score-value">${Math.round(scores.technical || 0)}/100</div>
+            </div>
+            <div class="score-item">
+              <div class="score-label">Fluency</div>
+              <div class="score-value">${Math.round(scores.fluency || 0)}/100</div>
+            </div>
+            <div class="score-item">
+              <div class="score-label">Vocabulary</div>
+              <div class="score-value">${Math.round(scores.vocabularyStrength || 0)}/100</div>
+            </div>
+            <div class="score-item">
+              <div class="score-label">Domain Knowledge</div>
+              <div class="score-value">${Math.round(scores.domainKnowledge || 0)}/100</div>
+            </div>
+            <div class="score-item">
+              <div class="score-label">Grammar</div>
+              <div class="score-value">${Math.round(scores.grammarAccuracy || 0)}/100</div>
+            </div>
+          </div>
+        </div>
+
+        ${scores.strengths && scores.strengths.length > 0 ? `
+        <div class="section">
+          <div class="section-title">Strengths</div>
+          <ul class="list">
+            ${scores.strengths.map(s => `<li class="list-item">${escapeHtml(s)}</li>`).join('')}
+          </ul>
+        </div>
+        ` : ''}
+
+        ${scores.improvements && scores.improvements.length > 0 ? `
+        <div class="section">
+          <div class="section-title">Areas for Improvement</div>
+          <ul class="list">
+            ${scores.improvements.map(i => `<li class="list-item">${escapeHtml(i)}</li>`).join('')}
+          </ul>
+        </div>
+        ` : ''}
+
+        ${scores.summary ? `
+        <div class="section">
+          <div class="section-title">Summary</div>
+          <p>${escapeHtml(scores.summary)}</p>
+        </div>
+        ` : ''}
+
+        ${interview.answers && interview.answers.length > 0 ? `
+        <div class="section">
+          <div class="section-title">Interview Transcripts</div>
+          ${interview.answers.map((answer, idx) => {
+            const question = interview.questions?.find(q => q.id === answer.questionId);
+            return `
+              <div class="transcript-item">
+                <div class="question-text">Question ${idx + 1}: ${escapeHtml(question?.text || 'N/A')}</div>
+                <div class="answer-text">${escapeHtml(answer.transcript || answer.answerText || 'No answer provided')}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+        ` : ''}
+
+        <div class="footer">
+          <p>Generated by PlacedAI on ${new Date().toLocaleString()}</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--disable-software-rasterizer'
+      ]
+    });
+
+    try {
+      const page = await browser.newPage();
+      await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+      
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: { top: '20mm', right: '15mm', bottom: '20mm', left: '15mm' }
+      });
+
+      await browser.close();
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="interview-report-${interview._id}.pdf"`);
+      res.send(pdfBuffer);
+    } catch (pdfError) {
+      await browser.close();
+      console.error('Error generating interview PDF:', pdfError);
+      res.status(500).json({ 
+        message: 'Failed to generate PDF report',
+        error: process.env.NODE_ENV === 'development' ? pdfError.message : undefined
+      });
+      return;
+    }
+  } catch (error) {
+    console.error('Error generating interview PDF:', error);
+    res.status(500).json({ 
+      message: 'Failed to generate PDF report',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 

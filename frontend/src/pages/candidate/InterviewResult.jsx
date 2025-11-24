@@ -56,9 +56,22 @@ export default function InterviewResult() {
     }
   };
 
-  const handleDownloadPDF = () => {
-    // TODO: Implement PDF generation
-    alert('PDF download feature coming soon!');
+  const handleDownloadPDF = async () => {
+    try {
+      const response = await interviewApi.downloadPDF(id);
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `interview-report-${id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to download PDF:', error);
+      alert('Failed to download PDF. Please try again.');
+    }
   };
 
   if (loading) {

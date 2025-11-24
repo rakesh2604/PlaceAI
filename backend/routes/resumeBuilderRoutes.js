@@ -944,7 +944,13 @@ const processRenderJob = async (jobId) => {
     const puppeteer = (await import('puppeteer')).default;
     const browser = await puppeteer.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--disable-software-rasterizer'
+      ]
     });
     
     try {

@@ -9,17 +9,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "axios": "^1.6.2",
+    "clsx": "^2.0.0",
+    "framer-motion": "^10.16.16",
+    "libphonenumber-js": "^1.11.0",
+    "lucide-react": "^0.294.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.20.0",
     "react-phone-number-input": "^3.3.4",
-    "libphonenumber-js": "^1.11.0",
-    "zustand": "^4.4.7",
-    "axios": "^1.6.2",
-    "lucide-react": "^0.294.0",
-    "framer-motion": "^10.16.16",
-    "clsx": "^2.0.0",
-    "tailwind-merge": "^2.2.0"
+    "react-router-dom": "^6.20.0",
+    "tailwind-merge": "^2.2.0",
+    "zustand": "^4.4.7"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",
@@ -31,4 +31,3 @@
     "vite": "^5.0.8"
   }
 }
-

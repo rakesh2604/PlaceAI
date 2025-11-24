@@ -12,9 +12,12 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Generate JWT token helper
 const generateToken = (user) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET is required but not set in environment variables');
+  }
   return jwt.sign(
     { userId: user._id, email: user.email, role: user.role },
-    process.env.JWT_SECRET || 'your-secret-key',
+    process.env.JWT_SECRET,
     { expiresIn: '7d' }
   );
 };

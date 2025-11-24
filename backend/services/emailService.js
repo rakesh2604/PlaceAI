@@ -124,3 +124,45 @@ export const sendOptInAcceptedEmail = async (recruiterEmail, candidateName, note
   }
 };
 
+export const sendContactNotification = async ({ name, email, subject, message, ticketId }) => {
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_FROM || 'admin@placedai.com';
+  
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || 'noreply@placedai.com',
+    to: adminEmail,
+    subject: `New Support Ticket: ${subject}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>New Support Ticket Received</h2>
+        <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p><strong>From:</strong> ${name} (${email})</p>
+          <p><strong>Subject:</strong> ${subject}</p>
+          ${ticketId ? `<p><strong>Ticket ID:</strong> ${ticketId}</p>` : ''}
+        </div>
+        <div style="background: #fff; padding: 15px; border-left: 4px solid #007bff; margin: 20px 0;">
+          <h3>Message:</h3>
+          <p style="white-space: pre-wrap;">${message}</p>
+        </div>
+        <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/admin/support" style="display: inline-block; background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 20px 0;">
+          View in Admin Dashboard
+        </a>
+      </div>
+    `
+  };
+
+  if (transporter) {
+    try {
+      await transporter.sendMail(mailOptions);
+      console.log(`Contact notification sent to admin (${adminEmail})`);
+    } catch (error) {
+      console.error('Error sending contact notification:', error);
+      // Don't throw error - allow ticket creation even if email fails
+      console.log(`[FALLBACK] Support ticket created: ${name} - ${subject} (email notification failed)`);
+    }
+  } else {
+    console.log(`[MOCK EMAIL] Support ticket notification: ${name} - ${subject}`);
+    console.log(`[MOCK EMAIL] Ticket ID: ${ticketId || 'N/A'}`);
+    console.log(`[MOCK EMAIL] Message: ${message.substring(0, 100)}...`);
+  }
+};
+

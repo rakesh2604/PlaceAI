@@ -53,12 +53,14 @@ export const isAIConfigured = () => {
 
 /**
  * Call AI API with unified interface
+ * Includes timeout, input sanitization, and error handling
  */
 export const callAI = async (systemPrompt, userPrompt, options = {}) => {
   const {
     temperature = 0.7,
     responseFormat = 'json_object',
-    model = 'gpt-4'
+    model = 'gpt-4',
+    timeout = 10000 // 10 second default timeout
   } = options;
 
   // If API not configured, return null to trigger fallback
@@ -66,7 +68,28 @@ export const callAI = async (systemPrompt, userPrompt, options = {}) => {
     return null;
   }
 
+  // Sanitize and truncate inputs to prevent token limit issues
+  const MAX_INPUT_CHARS = parseInt(process.env.MAX_AI_INPUT_CHARS || '15000', 10);
+  const sanitizeText = (text) => {
+    if (!text) return '';
+    // Remove null bytes and control characters
+    let sanitized = String(text).replace(/[\x00-\x1F\x7F]/g, '');
+    // Truncate to max length
+    if (sanitized.length > MAX_INPUT_CHARS) {
+      sanitized = sanitized.substring(0, MAX_INPUT_CHARS);
+      console.warn(`[AI Brain] Input truncated to ${MAX_INPUT_CHARS} characters`);
+    }
+    return sanitized;
+  };
+
+  const sanitizedSystemPrompt = sanitizeText(systemPrompt);
+  const sanitizedUserPrompt = sanitizeText(userPrompt);
+
   try {
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
     const response = await fetch(`${process.env.AI_API_BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -78,17 +101,20 @@ export const callAI = async (systemPrompt, userPrompt, options = {}) => {
         messages: [
           {
             role: 'system',
-            content: systemPrompt
+            content: sanitizedSystemPrompt
           },
           {
             role: 'user',
-            content: userPrompt
+            content: sanitizedUserPrompt
           }
         ],
         temperature,
         ...(responseFormat && { response_format: { type: responseFormat } })
-      })
+      }),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`AI API error: ${response.statusText}`);
@@ -97,7 +123,11 @@ export const callAI = async (systemPrompt, userPrompt, options = {}) => {
     const data = await response.json();
     return data.choices[0].message.content;
   } catch (error) {
-    console.error('[AI Brain] API call error:', error);
+    if (error.name === 'AbortError') {
+      console.error('[AI Brain] API call timeout after', timeout, 'ms');
+    } else {
+      console.error('[AI Brain] API call error:', error.message);
+    }
     return null;
   }
 };

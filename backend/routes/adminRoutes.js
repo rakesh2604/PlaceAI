@@ -301,6 +301,10 @@ router.get('/stats', async (req, res) => {
       }}
     ]);
 
+    // Get total ATS reports and support tickets
+    const totalATSReports = await ATSReport.countDocuments();
+    const totalSupportTickets = await SupportTicket.countDocuments();
+
     res.json({
       totalCandidates,
       totalRecruiters,
@@ -311,6 +315,8 @@ router.get('/stats', async (req, res) => {
       usersWithResumes,
       premiumUsers,
       enterpriseUsers,
+      totalATSReports,
+      totalSupportTickets,
       usage: usageStats[0] || { totalAIInterviews: 0, totalATSChecks: 0, totalResumeGenerations: 0 }
     });
   } catch (error) {

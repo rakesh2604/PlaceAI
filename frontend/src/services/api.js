@@ -1,9 +1,10 @@
 import axios from 'axios';
 import { queueRequest, processQueuedRequests, generateIdempotencyKey } from './requestQueue.js';
 import { networkSimulator } from '../utils/networkSimulator.js';
+import { API_URL } from '../config.js';
 
-// Use environment variable or default to relative path (uses Vite proxy in dev)
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+// Use API_URL from config, fallback to relative path for dev proxy
+const API_BASE_URL = API_URL ? `${API_URL}/api` : '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

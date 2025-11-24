@@ -64,7 +64,8 @@ export const interviewApi = {
   },
   finish: (interviewId, answers) => api.post('/interview/finish', { interviewId, answers }),
   getMyInterviews: () => api.get('/interview/my'),
-  getInterview: (id) => api.get(`/interview/${id}`)
+  getInterview: (id) => api.get(`/interview/${id}`),
+  downloadPDF: (id) => api.get(`/interview/${id}/pdf`, { responseType: 'blob' })
 };
 
 export const optInApi = {
