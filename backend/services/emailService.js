@@ -3,6 +3,19 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// HTML escape function to prevent XSS in email templates
+const escapeHtml = (text) => {
+  if (typeof text !== 'string') return text;
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return text.replace(/[&<>"']/g, (m) => map[m]);
+};
+
 // Create transporter
 const createTransporter = () => {
   if (!process.env.SMTP_HOST || !process.env.SMTP_USER) {
@@ -130,18 +143,18 @@ export const sendContactNotification = async ({ name, email, subject, message, t
   const mailOptions = {
     from: process.env.EMAIL_FROM || 'noreply@placedai.com',
     to: adminEmail,
-    subject: `New Support Ticket: ${subject}`,
+    subject: `New Support Ticket: ${escapeHtml(subject)}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2>New Support Ticket Received</h2>
         <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-          <p><strong>From:</strong> ${name} (${email})</p>
-          <p><strong>Subject:</strong> ${subject}</p>
-          ${ticketId ? `<p><strong>Ticket ID:</strong> ${ticketId}</p>` : ''}
+          <p><strong>From:</strong> ${escapeHtml(name)} (${escapeHtml(email)})</p>
+          <p><strong>Subject:</strong> ${escapeHtml(subject)}</p>
+          ${ticketId ? `<p><strong>Ticket ID:</strong> ${escapeHtml(ticketId)}</p>` : ''}
         </div>
         <div style="background: #fff; padding: 15px; border-left: 4px solid #007bff; margin: 20px 0;">
           <h3>Message:</h3>
-          <p style="white-space: pre-wrap;">${message}</p>
+          <p style="white-space: pre-wrap;">${escapeHtml(message)}</p>
         </div>
         <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/admin/support" style="display: inline-block; background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 20px 0;">
           View in Admin Dashboard
@@ -165,4 +178,3 @@ export const sendContactNotification = async ({ name, email, subject, message, t
     console.log(`[MOCK EMAIL] Message: ${message.substring(0, 100)}...`);
   }
 };
-

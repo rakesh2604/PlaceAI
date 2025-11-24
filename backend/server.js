@@ -179,7 +179,7 @@ app.use('/api/support', supportRoutes);
 app.use('/api/judge', judgeRoutes);
 
 // Health check route
-app.get('/health', (req, res) => res.send('OK'));
+app.get('/api/health', (req, res) => res.send('OK'));
 
 // 404 handler for undefined routes
 app.use('/api/*', (req, res) => {
