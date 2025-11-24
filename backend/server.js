@@ -152,7 +152,7 @@ app.use('/api/ats', atsRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/judge', judgeRoutes);
 
-// Health check
+// Health check - always returns 200 so frontend can detect backend is running
 app.get('/api/health', (req, res) => {
   const dbState = mongoose.connection.readyState;
   const dbStatusMap = {
@@ -164,7 +164,9 @@ app.get('/api/health', (req, res) => {
   const dbStatus = dbStatusMap[dbState] || 'unknown';
   const isConnected = dbState === 1;
   
-  res.json({
+  // Always return 200 status so frontend knows backend is reachable
+  // Database status is included in response for monitoring
+  res.status(200).json({
     status: isConnected ? 'ok' : 'degraded',
     timestamp: new Date().toISOString(),
     database: dbStatus,
