@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
 import { testConnection, processQueuedRequestsOnReconnect } from '../../services/api';
 import LoginForm from '../../components/auth/LoginForm';
-import Button from '../../components/ui/Button';
 
+// Animation variants
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -23,15 +23,18 @@ const itemVariants = {
 
 export default function LoginPage() {
   const [backendError, setBackendError] = useState('');
-  const [testingConnection, setTestingConnection] = useState(false);
   const navigate = useNavigate();
 
   // Health check on mount - ONLY show error if health check fails
   useEffect(() => {
+    let isMounted = true;
+
     const checkConnection = async () => {
-      setTestingConnection(true);
       try {
         const result = await testConnection();
+        
+        if (!isMounted) return;
+
         if (result.connected) {
           setBackendError(''); // Clear any previous errors
           // Process any queued requests now that we're connected
@@ -46,23 +49,31 @@ export default function LoginPage() {
           }
         }
       } catch (err) {
+        if (!isMounted) return;
+
         // This catch should rarely trigger since testConnection handles errors internally
-        const isNetworkError = !err.response || 
-                              err.code === 'ECONNREFUSED' || 
-                              err.code === 'ETIMEDOUT' ||
-                              err.code === 'ERR_NETWORK' ||
-                              err.code === 'ERR_CONNECTION_REFUSED' ||
-                              err.response?.status >= 500;
+        const isNetworkError = 
+          !err.response || 
+          err.code === 'ECONNREFUSED' || 
+          err.code === 'ETIMEDOUT' ||
+          err.code === 'ERR_NETWORK' ||
+          err.code === 'ERR_CONNECTION_REFUSED' ||
+          err?.response?.status >= 500;
+
         if (isNetworkError) {
           setBackendError('Backend server is not reachable. Please ensure it is running.');
         } else {
-          setBackendError(''); // Don't show backend error for other issues
+          setBackendError('');
         }
-      } finally {
-        setTestingConnection(false);
       }
     };
+
     checkConnection();
+
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return (
@@ -120,6 +131,7 @@ export default function LoginPage() {
             </motion.div>
           )}
 
+          {/* LoginForm handles the Google Button & Email Inputs */}
           <LoginForm />
 
           <motion.div
@@ -155,4 +167,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
