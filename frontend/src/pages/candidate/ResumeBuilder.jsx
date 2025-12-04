@@ -113,7 +113,8 @@ export default function ResumeBuilder() {
 
   // Save resume
   const handleSave = async () => {
-    if (!user?.profileCompleted) {
+    const { isProfileComplete } = await import('../../utils/profileUtils');
+    if (!isProfileComplete(user)) {
       setShowProfileModal(true);
       return;
     }
@@ -140,7 +141,8 @@ export default function ResumeBuilder() {
 
   // Generate PDF
   const handleGeneratePDF = async () => {
-    if (!user?.profileCompleted) {
+    const { isProfileComplete } = await import('../../utils/profileUtils');
+    if (!isProfileComplete(user)) {
       setShowProfileModal(true);
       return;
     }

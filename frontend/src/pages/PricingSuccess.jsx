@@ -5,6 +5,7 @@ import { CheckCircle2, Sparkles, ArrowRight } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import Button from '../components/ui/Button';
 import { userApi } from '../services/candidateApi';
+import api from '../services/api';
 
 export default function PricingSuccess() {
   const [searchParams] = useSearchParams();
@@ -15,20 +16,41 @@ export default function PricingSuccess() {
   useEffect(() => {
     const verifyPayment = async () => {
       try {
-        // Refresh user data to get updated plan
+        const sessionId = searchParams.get('session_id');
+        
+        // If no session_id, redirect to pricing
+        if (!sessionId) {
+          console.error('No session_id provided');
+          navigate('/pricing');
+          return;
+        }
+
+        // Verify payment with backend
+        const verifyResponse = await api.get(`/billing/verify-payment/${sessionId}`);
+        
+        if (!verifyResponse.data?.valid) {
+          // Payment not valid, redirect to pricing
+          console.error('Payment verification failed:', verifyResponse.data?.message);
+          navigate('/pricing?error=payment_verification_failed');
+          return;
+        }
+
+        // Payment is valid, refresh user data
         const response = await userApi.getMe();
         if (response.data?.user) {
           updateUser(response.data.user);
         }
       } catch (error) {
         console.error('Error verifying payment:', error);
+        // Redirect to pricing on error
+        navigate('/pricing?error=payment_verification_error');
       } finally {
         setLoading(false);
       }
     };
 
     verifyPayment();
-  }, [updateUser]);
+  }, [searchParams, navigate, updateUser]);
 
   if (loading) {
     return (

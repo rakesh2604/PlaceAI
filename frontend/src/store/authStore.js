@@ -74,15 +74,29 @@ export const useAuthStore = create((set) => ({
   updateUser: (userData) => {
     set((state) => {
       const mergedUser = { ...state.user, ...userData };
-      const hasPhone = !!(mergedUser.phone);
-      const hasResume = !!(mergedUser.resume || mergedUser.resumeUrl);
+      
+      // Prefer backend-provided profileCompleted flag
+      // If not provided, calculate: phone AND resumeUrl required
+      const hasPhone = !!(mergedUser.phone && mergedUser.phone.trim());
+      const hasResume = !!(mergedUser.resumeUrl || (mergedUser.resume && mergedUser.resume.url));
       const profileCompleted = mergedUser.profileCompleted !== undefined 
-        ? mergedUser.profileCompleted 
+        ? Boolean(mergedUser.profileCompleted) 
         : !!(hasPhone && hasResume);
+      
       const updatedUser = {
         ...mergedUser,
         profileCompleted
       };
+      
+      console.log('[authStore] updateUser called:', {
+        phone: mergedUser.phone ? 'present' : 'missing',
+        resumeUrl: mergedUser.resumeUrl ? 'present' : 'missing',
+        resume: mergedUser.resume ? 'present' : 'missing',
+        backendProfileCompleted: mergedUser.profileCompleted,
+        calculatedProfileCompleted: profileCompleted,
+        finalProfileCompleted: updatedUser.profileCompleted
+      });
+      
       localStorage.setItem('user', JSON.stringify(updatedUser));
       return { user: updatedUser };
     });

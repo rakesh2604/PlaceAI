@@ -156,14 +156,39 @@ export default function OnboardingDetails() {
         updatePayload.resumeId = resumeMetadata.id;
       }
       
+      console.log('[OnboardingDetails] Saving profile:', {
+        phone: phone ? 'present' : 'missing',
+        languages: selectedLanguages.length,
+        hasResume: Boolean(resumeMetadata || resume)
+      });
+
       const response = await userApi.updateProfile(updatePayload);
       
       if (response.data?.success && response.data?.user) {
-        // Update user store with complete user object from backend
-        updateUser(response.data.user);
-        setSuccess(true);
+        const updatedUser = response.data.user;
+        console.log('[OnboardingDetails] Profile saved successfully:', {
+          phone: updatedUser.phone ? 'present' : 'missing',
+          resumeUrl: updatedUser.resumeUrl ? 'present' : 'missing',
+          profileCompleted: updatedUser.profileCompleted
+        });
         
-        // Clear form errors
+        // Update user store with complete user object from backend
+        updateUser(updatedUser);
+        
+        // Refetch user data to ensure latest state
+        try {
+          const refreshResponse = await userApi.getMe();
+          if (refreshResponse.data?.user) {
+            console.log('[OnboardingDetails] Refreshed user data:', {
+              profileCompleted: refreshResponse.data.user.profileCompleted
+            });
+            updateUser(refreshResponse.data.user);
+          }
+        } catch (refreshError) {
+          console.error('[OnboardingDetails] Error refreshing user:', refreshError);
+        }
+        
+        setSuccess(true);
         setError('');
         
         // Navigate to dashboard after brief delay to show success message

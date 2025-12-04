@@ -90,7 +90,8 @@ export default function ResumeLab() {
       return;
     }
     
-    if (!user?.profileCompleted) {
+    const { isProfileComplete } = await import('../../utils/profileUtils');
+    if (!isProfileComplete(user)) {
       setShowProfileModal(true);
       return;
     }

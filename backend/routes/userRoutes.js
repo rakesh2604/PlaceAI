@@ -73,8 +73,22 @@ const handleMulterError = (err, req, res, next) => {
 router.get('/me', authenticate, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-otpHash');
-    res.json({ user });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Calculate profileCompleted: phone AND resumeUrl required
+    const profileCompleted = !!(user.phone && user.resumeUrl);
+    
+    // Return user with profileCompleted flag
+    res.json({ 
+      user: {
+        ...user.toObject(),
+        profileCompleted
+      }
+    });
   } catch (error) {
+    console.error('[GET /user/me] Error:', error);
     res.status(500).json({ message: 'Failed to fetch user' });
   }
 });
@@ -177,7 +191,15 @@ router.patch('/profile',
       user.updatedAt = new Date();
       await user.save();
       
-      // Profile update logged (removed console.log for production)
+      // Calculate profileCompleted: phone AND resumeUrl required
+      const profileCompleted = !!(user.phone && user.resumeUrl);
+      
+      console.log('[PATCH /user/profile] Profile updated:', {
+        userId: user._id,
+        hasPhone: !!user.phone,
+        hasResumeUrl: !!user.resumeUrl,
+        profileCompleted
+      });
       
       res.json({
         success: true,
@@ -197,7 +219,7 @@ router.patch('/profile',
           selectedRoleId: user.selectedRoleId || null,
           planId: user.planId || 'free',
           isPremium: user.isPremium || false,
-          profileCompleted: !!(user.phone && user.resumeUrl)
+          profileCompleted
         }
       });
     } catch (error) {
@@ -273,8 +295,15 @@ router.post('/resume',
       user.updatedAt = new Date();
       await user.save();
       
-      // Calculate profileCompleted for response - phone + resume only
+      // Calculate profileCompleted for response - phone + resumeUrl required
       const profileCompleted = !!(user.phone && user.resumeUrl);
+      
+      console.log('[POST /user/resume] Profile completion check:', {
+        userId: user._id,
+        hasPhone: !!user.phone,
+        hasResumeUrl: !!user.resumeUrl,
+        profileCompleted
+      });
       
       // Return resume metadata AND updated user with profileCompleted status
       res.json({

@@ -184,7 +184,8 @@ export default function JobRecommendations() {
 
   const handleApply = async (jobId) => {
     // Check profile completion before allowing job application
-    if (!user?.profileCompleted) {
+    const { isProfileComplete } = await import('../../utils/profileUtils');
+    if (!isProfileComplete(user)) {
       setShowProfileModal(true);
       return;
     }

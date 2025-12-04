@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { Video, Calendar, TrendingUp, ArrowRight } from 'lucide-react';
-import { interviewApi } from '../../services/candidateApi';
+import { interviewApi, userApi } from '../../services/candidateApi';
 import { useAuthStore } from '../../store/authStore';
 import Badge from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import ProfileCompletionModal from '../../components/ui/ProfileCompletionModal';
+import { isProfileComplete, refetchUserData } from '../../utils/profileUtils';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -25,15 +26,24 @@ const itemVariants = {
 };
 
 export default function DashboardInterviews() {
-  const { user } = useAuthStore();
+  const { user, updateUser } = useAuthStore();
   const navigate = useNavigate();
   const [interviews, setInterviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [checkingProfile, setCheckingProfile] = useState(true);
 
+  // Refetch user data on mount to ensure fresh profile completion status
   useEffect(() => {
-    loadInterviews();
-  }, []);
+    const initialize = async () => {
+      setCheckingProfile(true);
+      await refetchUserData(updateUser, userApi);
+      setCheckingProfile(false);
+      loadInterviews();
+    };
+
+    initialize();
+  }, [updateUser]);
 
   const loadInterviews = async () => {
     try {
@@ -46,7 +56,22 @@ export default function DashboardInterviews() {
     }
   };
 
-  if (loading) {
+  // Check profile completion status
+  const profileComplete = isProfileComplete(user);
+  
+  // Log profile status for debugging
+  useEffect(() => {
+    if (!checkingProfile && user) {
+      console.log('[DashboardInterviews] Profile check:', {
+        profileComplete,
+        hasPhone: Boolean(user.phone),
+        hasResume: Boolean(user.resumeUrl || user.resume),
+        userProfileCompleted: user.profileCompleted
+      });
+    }
+  }, [checkingProfile, user, profileComplete]);
+
+  if (loading || checkingProfile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <motion.div
@@ -90,9 +115,11 @@ export default function DashboardInterviews() {
               </p>
               <Button
                 onClick={() => {
-                  if (!user?.profileCompleted) {
+                  if (!profileComplete) {
+                    console.log('[DashboardInterviews] Profile incomplete, showing modal');
                     setShowProfileModal(true);
                   } else {
+                    console.log('[DashboardInterviews] Profile complete, navigating to interview');
                     navigate('/interview/intro');
                   }
                 }}

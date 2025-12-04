@@ -179,6 +179,68 @@ router.post('/webhook',
   }
 );
 
+// Verify payment by session ID
+router.get('/verify-payment/:sessionId',
+  authenticate,
+  async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const user = await User.findById(req.user._id);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Find payment by session ID and user ID
+      const payment = await Payment.findOne({
+        stripeSessionId: sessionId,
+        userId: user._id
+      });
+
+      if (!payment) {
+        return res.status(404).json({ 
+          valid: false,
+          message: 'Payment not found or does not belong to this user' 
+        });
+      }
+
+      // Check if payment is completed
+      if (payment.status !== 'completed') {
+        return res.status(400).json({ 
+          valid: false,
+          message: 'Payment is not completed',
+          status: payment.status
+        });
+      }
+
+      // Verify user plan matches payment
+      const planId = payment.metadata?.planId || payment.planType;
+      if (user.planId !== planId) {
+        return res.status(400).json({ 
+          valid: false,
+          message: 'User plan does not match payment'
+        });
+      }
+
+      res.json({ 
+        valid: true,
+        payment: {
+          id: payment._id,
+          planId: planId,
+          amount: payment.amount,
+          status: payment.status,
+          createdAt: payment.createdAt
+        }
+      });
+    } catch (error) {
+      console.error('Error verifying payment:', error);
+      res.status(500).json({ 
+        valid: false,
+        message: 'Failed to verify payment' 
+      });
+    }
+  }
+);
+
 // Get billing history (for both candidates and recruiters)
 router.get('/history',
   authenticate,
