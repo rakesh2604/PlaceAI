@@ -13,16 +13,16 @@ router.get('/recommend', authenticate, async (req, res) => {
     
     if (!user.resumeParsed || !user.resumeParsed.skills || user.resumeParsed.skills.length === 0) {
       // Return all jobs if no resume parsed
-      const jobs = await Job.find().limit(10);
-      return res.json({ jobs });
+      const jobs = await Job.find().limit(20).sort({ createdAt: -1 });
+      return res.json({ jobs: jobs.map(j => j.toObject()) });
     }
 
     // Simple matching: find jobs where required skills overlap with user skills
     const userSkills = user.resumeParsed.skills.map(s => s.toLowerCase());
     
-    const allJobs = await Job.find();
+    const allJobs = await Job.find().sort({ createdAt: -1 });
     const scoredJobs = allJobs.map(job => {
-      const jobSkills = job.skillsRequired.map(s => s.toLowerCase());
+      const jobSkills = (job.skillsRequired || []).map(s => s.toLowerCase());
       const matches = userSkills.filter(skill => 
         jobSkills.some(js => js.includes(skill) || skill.includes(js))
       );
@@ -32,9 +32,9 @@ router.get('/recommend', authenticate, async (req, res) => {
       };
     });
 
-    // Sort by match score and return top 10
+    // Sort by match score and return top 20
     scoredJobs.sort((a, b) => b.matchScore - a.matchScore);
-    const recommended = scoredJobs.slice(0, 10).map(j => {
+    const recommended = scoredJobs.slice(0, 20).map(j => {
       const { matchScore, ...job } = j;
       return job;
     });

@@ -59,11 +59,54 @@ export default function JobRecommendations() {
 
   const loadJobs = async () => {
     try {
+      setLoading(true);
       const response = await jobApi.getRecommendations();
-      const jobsData = response.data?.jobs || [];
+      
+      // Check for 401 Unauthorized
+      if (response?.status === 401) {
+        console.error('Authentication failed. Token may be invalid or expired.');
+        // The API interceptor should handle redirect, but if not, redirect here
+        const token = localStorage.getItem('token');
+        if (!token) {
+          window.location.href = '/login';
+          return;
+        }
+        // Token exists but invalid - clear and redirect
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+        return;
+      }
+      
+      // Check for other error statuses
+      if (response?.status >= 400) {
+        console.error('API Error:', response?.status, response?.data);
+        setJobs([]);
+        setFilteredJobs([]);
+        return;
+      }
+      
+      // Handle different response formats - Axios wraps response in .data
+      let jobsData = [];
+      if (response?.data?.jobs && Array.isArray(response.data.jobs)) {
+        jobsData = response.data.jobs;
+      } else if (Array.isArray(response?.data)) {
+        jobsData = response.data;
+      } else if (Array.isArray(response?.jobs)) {
+        jobsData = response.jobs;
+      }
+      
       setJobs(jobsData);
       setFilteredJobs(jobsData);
     } catch (err) {
+      console.error('Error loading jobs:', err);
+      if (err.response?.status === 401) {
+        // Handle 401 in catch block too
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+        return;
+      }
       setJobs([]);
       setFilteredJobs([]);
     } finally {
@@ -72,7 +115,9 @@ export default function JobRecommendations() {
   };
 
   const applyFilters = () => {
-    let filtered = [...jobs];
+    // Ensure jobs is always an array
+    const jobsArray = Array.isArray(jobs) ? jobs : [];
+    let filtered = [...jobsArray];
 
     // Search filter
     if (searchQuery) {
@@ -175,9 +220,10 @@ export default function JobRecommendations() {
     );
   }
 
-  // Get unique values for filters
-  const uniqueRoles = [...new Set(jobs.map(job => job.title).filter(Boolean))];
-  const uniqueLocations = [...new Set(jobs.map(job => job.location).filter(Boolean))];
+  // Get unique values for filters - ensure jobs is an array
+  const jobsArray = Array.isArray(jobs) ? jobs : [];
+  const uniqueRoles = [...new Set(jobsArray.map(job => job.title).filter(Boolean))];
+  const uniqueLocations = [...new Set(jobsArray.map(job => job.location).filter(Boolean))];
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#000814]">

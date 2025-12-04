@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Video, CheckCircle2, Camera, Mic, Clock, AlertCircle } from 'lucide-react';
+import { Video, CheckCircle2, Camera, Mic, Clock, AlertCircle, Briefcase } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { interviewApi, userApi } from '../../services/candidateApi';
 import Button from '../../components/ui/Button';
@@ -42,22 +42,42 @@ export default function InterviewIntro() {
   }, [user?.selectedRoleId, location.state?.jobId]);
 
   useEffect(() => {
-    if (hasRole || user?.selectedRoleId) {
+    // If already has role, skip fetching
+    if (hasRole) {
+      setChecking(false);
+      return;
+    }
+
+    // If user already loaded but no role, don't fetch again
+    if (user && !user.selectedRoleId) {
+      setChecking(false);
       return;
     }
 
     let isMounted = true;
+    let timeoutId;
     setChecking(true);
     
     const fetchUser = async () => {
       try {
-        const response = await userApi.getMe();
-        if (isMounted && response.data.user) {
+        // Add timeout to prevent infinite loading
+        const timeoutPromise = new Promise((_, reject) => {
+          timeoutId = setTimeout(() => reject(new Error('Request timeout')), 10000);
+        });
+
+        const response = await Promise.race([
+          userApi.getMe(),
+          timeoutPromise
+        ]);
+
+        if (isMounted && response?.data?.user) {
           updateUser(response.data.user);
         }
       } catch (err) {
         // Silently handle error - user state will remain unchanged
+        console.error('Failed to fetch user:', err);
       } finally {
+        if (timeoutId) clearTimeout(timeoutId);
         if (isMounted) {
           setChecking(false);
         }
@@ -68,9 +88,9 @@ export default function InterviewIntro() {
     
     return () => {
       isMounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [hasRole, user, updateUser]);
 
   const handleStart = async () => {
     const jobId = user?.selectedRoleId || location.state?.jobId;
@@ -170,12 +190,28 @@ export default function InterviewIntro() {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-8 p-4 rounded-xl bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-200 dark:border-yellow-800 flex items-center gap-3"
+              className="mb-8 p-6 rounded-xl bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-2 border-yellow-200 dark:border-yellow-800"
             >
-              <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
-              <p className="text-sm text-yellow-800 dark:text-yellow-300">
-                Please select a job role first before starting the interview.
-              </p>
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center flex-shrink-0">
+                  <AlertCircle className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-lg font-semibold text-yellow-900 dark:text-yellow-200 mb-2">
+                    Select a Job Role First
+                  </h4>
+                  <p className="text-sm text-yellow-800 dark:text-yellow-300 mb-4">
+                    To start your AI-powered interview, please select a job role from the available positions. This helps us customize the interview questions for your target role.
+                  </p>
+                  <Button
+                    onClick={() => navigate('/dashboard/jobs')}
+                    className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                  >
+                    <Briefcase className="w-4 h-4 mr-2" />
+                    Browse Jobs & Select Role
+                  </Button>
+                </div>
+              </div>
             </motion.div>
           )}
 
